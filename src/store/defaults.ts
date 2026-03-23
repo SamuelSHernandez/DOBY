@@ -13,10 +13,13 @@ export const defaultProperty: Property = {
   purchasePrice: 0,
   offerDate: "",
   closingDate: "",
+  closingCosts: 0,
   sellerConcessions: 0,
   squareFeet: 0,
   yearBuilt: 0,
   lotSize: "",
+  hoaMonthly: 0,
+  homeImage: "",
 };
 
 export const defaultMortgage: Mortgage = {
@@ -85,6 +88,7 @@ export const defaultState: DobyState = {
   emergencyInfo: defaultEmergencyInfo,
   contractors: [],
   documents: [],
+  customTasks: [],
 };
 
 // ─── Presets ───

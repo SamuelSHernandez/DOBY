@@ -14,6 +14,7 @@ import type {
   Project,
   Contractor,
   DocumentRef,
+  CustomTask,
   InventoryItem,
   WishlistItem,
   RoomMaterials,
@@ -84,6 +85,15 @@ interface DobyActions {
 
   // Emergency
   updateEmergencyInfo: (data: Partial<EmergencyInfo>) => void;
+
+  // Custom tasks
+  addCustomTask: (task: CustomTask) => void;
+  updateCustomTask: (id: string, data: Partial<CustomTask>) => void;
+  deleteCustomTask: (id: string) => void;
+  completeCustomTask: (id: string) => void;
+
+  // System service completion
+  completeSystemService: (systemId: string) => void;
 
   // Meta
   isInitialized: () => boolean;
@@ -272,6 +282,43 @@ export const useDobyStore = create<DobyStore>()(
       // Emergency
       updateEmergencyInfo: (data) =>
         set((s) => ({ emergencyInfo: { ...s.emergencyInfo, ...data } })),
+
+      // Custom tasks
+      addCustomTask: (task) =>
+        set((s) => ({ customTasks: [...s.customTasks, task] })),
+      updateCustomTask: (id, data) =>
+        set((s) => ({ customTasks: updateItemInArray(s.customTasks, id, data) })),
+      deleteCustomTask: (id) =>
+        set((s) => ({ customTasks: s.customTasks.filter((t) => t.id !== id) })),
+      completeCustomTask: (id) =>
+        set((s) => ({
+          customTasks: s.customTasks.map((t) =>
+            t.id === id ? { ...t, completed: true, completedDate: new Date().toISOString().slice(0, 10) } : t
+          ),
+        })),
+
+      // System service completion — update lastServiceDate to today, push nextServiceDate forward
+      completeSystemService: (systemId) =>
+        set((s) => ({
+          systems: s.systems.map((sys) => {
+            if (sys.id !== systemId) return sys;
+            const today = new Date().toISOString().slice(0, 10);
+            // Estimate next service: if we know the interval from last dates, use that; otherwise 6 months
+            let nextDate = "";
+            if (sys.nextServiceDate && sys.lastServiceDate) {
+              const lastMs = new Date(sys.lastServiceDate).getTime();
+              const nextMs = new Date(sys.nextServiceDate).getTime();
+              const intervalMs = nextMs - lastMs;
+              if (intervalMs > 0) {
+                nextDate = new Date(Date.now() + intervalMs).toISOString().slice(0, 10);
+              }
+            }
+            if (!nextDate) {
+              nextDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            }
+            return { ...sys, lastServiceDate: today, nextServiceDate: nextDate };
+          }),
+        })),
 
       // Meta
       isInitialized: () => get().property.address !== "",
