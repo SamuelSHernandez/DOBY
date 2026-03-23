@@ -2,11 +2,13 @@
 
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
+import SupabaseSync from "@/lib/supabase/provider";
 import { Toaster } from "sonner";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <SupabaseSync />
       <Sidebar />
       <MobileNav />
       <main className="min-h-screen pt-14 pb-24 px-4 md:pt-0 md:pb-0 md:pl-[200px] md:px-8">
