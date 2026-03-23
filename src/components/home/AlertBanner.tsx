@@ -2,7 +2,6 @@
 
 import { useDobyStore } from "@/store";
 import { daysUntil, yearsFractional } from "@/lib/dates";
-import { AlertCircle } from "lucide-react";
 
 interface Alert {
   title: string;
@@ -61,13 +60,13 @@ export default function AlertBanner() {
   const worst = alerts.sort((a, b) => b.daysOverdue - a.daysOverdue)[0];
 
   return (
-    <div className="mb-6 flex items-start gap-3 border border-oxblood/30 bg-oxblood/5 p-4">
-      <AlertCircle size={16} className="mt-0.5 shrink-0 text-oxblood" />
+    <div className="mb-6 flex items-start gap-4 rounded-lg border border-oxblood/30 bg-oxblood/5 p-5">
+      <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full bg-oxblood" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-text-primary">{worst.title}</p>
-        <p className="mt-0.5 text-xs text-text-secondary">{worst.description}</p>
+        <p className="mt-1 text-xs text-text-secondary">{worst.description}</p>
       </div>
-      <span className="shrink-0 border border-oxblood/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-oxblood">
+      <span className="shrink-0 text-sm text-oxblood">
         {worst.daysOverdue} days overdue
       </span>
     </div>
