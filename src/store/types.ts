@@ -10,10 +10,13 @@ export interface Property {
   purchasePrice: number;
   offerDate: string;
   closingDate: string;
+  closingCosts: number;
   sellerConcessions: number;
   squareFeet: number;
   yearBuilt: number;
   lotSize: string;
+  hoaMonthly: number;
+  homeImage: string;
 }
 
 export interface Mortgage {
@@ -117,8 +120,21 @@ export interface HomeSystem {
   estimatedReplaceCost: number;
   condition: Condition;
   notes: string;
+  // HVAC-specific
   filterSize?: string;
   filterChangeIntervalMonths?: number;
+  // Network/service-specific
+  provider?: string;
+  monthlyPayment?: number;
+  accountNumber?: string;
+  // Appliance-specific
+  brand?: string;
+  modelNumber?: string;
+  serialNumber?: string;
+  // Electrical-specific
+  amperage?: number;
+  // Plumbing-specific
+  capacity?: string;
 }
 
 // ─── Upkeep ───
@@ -148,6 +164,17 @@ export interface UtilityBill {
   type: string;
   amount: number;
   date: string;
+}
+
+// ─── Custom Tasks ───
+export interface CustomTask {
+  id: string;
+  name: string;
+  location: string;
+  dueDate: string;
+  priority: "high" | "medium" | "low";
+  completed: boolean;
+  completedDate?: string;
 }
 
 // ─── Reference ───
@@ -195,4 +222,5 @@ export interface DobyState {
   emergencyInfo: EmergencyInfo;
   contractors: Contractor[];
   documents: DocumentRef[];
+  customTasks: CustomTask[];
 }
