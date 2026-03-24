@@ -270,8 +270,8 @@ export default function MortgagePage() {
         </p>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={breakdownData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} stackOffset="expand" barCategoryGap="15%">
-            <XAxis dataKey="year" tickFormatter={(v) => `${v}y`} tick={{ fontSize: 10, fill: "#8a8b91" }} stroke="#3a3b40" />
-            <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "#8a8b91" }} stroke="#3a3b40" width={40} />
+            <XAxis dataKey="year" tickFormatter={(v) => `${v}y`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" />
+            <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" width={40} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
@@ -313,8 +313,8 @@ export default function MortgagePage() {
                 <stop offset="95%" stopColor="#3083DC" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "#8a8b91" }} stroke="#3a3b40" />
-            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "#8a8b91" }} stroke="#3a3b40" width={50} />
+            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" />
+            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" width={50} />
             <Tooltip content={<ChartTooltip />} />
             <Area type="monotone" dataKey="standard" name="Standard" stroke="#95190C" strokeWidth={2} fill="url(#stdGrad)" dot={false} />
             <Area type="monotone" dataKey="accelerated" name="Accelerated" stroke="#3083DC" strokeWidth={2} fill="url(#accGrad)" dot={false} />
@@ -344,8 +344,8 @@ export default function MortgagePage() {
                 <stop offset="95%" stopColor="#3083DC" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "#8a8b91" }} stroke="#3a3b40" />
-            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "#8a8b91" }} stroke="#3a3b40" width={50} />
+            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" />
+            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" width={50} />
             <Tooltip content={<ChartTooltip />} />
             <Area type="monotone" dataKey="standard" name="Standard Interest" stroke="#95190C" strokeWidth={2} fill="url(#intStd)" dot={false} />
             <Area type="monotone" dataKey="accelerated" name="Accelerated Interest" stroke="#3083DC" strokeWidth={2} fill="url(#intAcc)" dot={false} />
@@ -367,7 +367,7 @@ export default function MortgagePage() {
           return (
             <div key={pct} className={`flex items-center py-3 ${pct < 100 ? "border-b border-border" : ""}`}>
               {/* Donut */}
-              <div className="mr-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#3083DC ${pct * 3.6}deg, #3a3b40 0deg)` }}>
+              <div className="mr-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#3083DC ${pct * 3.6}deg, #18181b 0deg)` }}>
                 <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-surface text-[10px] font-semibold text-text-primary">
                   {pct}%
                 </div>

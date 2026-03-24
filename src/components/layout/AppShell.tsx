@@ -21,10 +21,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         toastOptions={{
           className: "md:!bottom-4 md:!right-4 md:!top-auto md:!left-auto",
           style: {
-            background: "#222327",
-            color: "#f0f0f2",
-            border: "1px solid #3a3b40",
-            borderRadius: "0",
+            background: "#0d0d0f",
+            color: "#fafafa",
+            border: "1px solid #18181b",
+            borderRadius: "8px",
             fontFamily: "var(--font-mono)",
             fontSize: "13px",
           },

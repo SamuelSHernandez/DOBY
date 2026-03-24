@@ -7,20 +7,32 @@ import {
   Settings2,
   Wallet,
   Wrench,
+  BookOpen,
   MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { label: string; href: string | null; icon: React.ElementType }[] = [
   { label: "Home", href: "/home", icon: LayoutDashboard },
   { label: "Systems", href: "/systems", icon: Settings2 },
   { label: "Finances", href: "/finances", icon: Wallet },
   { label: "Upkeep", href: "/upkeep", icon: Wrench },
-  { label: "More", href: "/reference", icon: MoreHorizontal },
+  { label: "More", href: null, icon: MoreHorizontal },
+];
+
+const MORE_ITEMS = [
+  { label: "Reference", href: "/reference", icon: BookOpen },
+  { label: "Admin", href: "/admin", icon: Settings2 },
 ];
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const isMoreActive = MORE_ITEMS.some(
+    (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+  );
 
   return (
     <>
@@ -31,17 +43,62 @@ export default function MobileNav() {
         </h1>
       </header>
 
-      {/* Bottom nav — safe-bottom for iPhone home indicator */}
+      {/* More menu overlay */}
+      {moreOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-carbon/60 md:hidden"
+          onClick={() => setMoreOpen(false)}
+        >
+          <div className="absolute bottom-16 right-2 border border-border bg-panel py-1" onClick={(e) => e.stopPropagation()}>
+            {MORE_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMoreOpen(false)}
+                  className="flex min-h-[44px] items-center gap-3 px-5 text-sm text-text-secondary hover:bg-surface"
+                >
+                  <Icon size={16} strokeWidth={2} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom nav */}
       <nav className="safe-bottom fixed bottom-0 left-0 right-0 z-30 flex h-16 items-center justify-around border-t border-border bg-panel md:hidden">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+          const isMore = item.href === null;
+          const isActive = isMore
+            ? isMoreActive
+            : pathname === item.href || pathname.startsWith(item.href + "/");
+
+          if (isMore) {
+            return (
+              <button
+                key="more"
+                onClick={() => setMoreOpen((v) => !v)}
+                className={cn(
+                  "flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1",
+                  isActive || moreOpen ? "text-azure" : "text-text-tertiary"
+                )}
+              >
+                <Icon size={20} strokeWidth={2} />
+                <span className="text-[10px] font-medium uppercase tracking-wider">
+                  {item.label}
+                </span>
+              </button>
+            );
+          }
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.href!}
+              href={item.href!}
               className={cn(
                 "flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1",
                 isActive ? "text-azure" : "text-text-tertiary"

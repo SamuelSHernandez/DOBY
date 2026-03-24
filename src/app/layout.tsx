@@ -19,7 +19,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
-  themeColor: "#1C1D21",
+  themeColor: "#09090b",
 };
 
 import AppShell from "@/components/layout/AppShell";

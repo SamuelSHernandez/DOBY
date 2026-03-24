@@ -97,15 +97,15 @@ export default function UtilityTracker() {
           </p>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
-              <CartesianGrid stroke="#3a3b40" strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#8a8b91" }} />
-              <YAxis tick={{ fontSize: 10, fill: "#8a8b91" }} />
+              <CartesianGrid stroke="#18181b" strokeDasharray="3 3" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#3f3f46" }} />
+              <YAxis tick={{ fontSize: 10, fill: "#3f3f46" }} />
               <Tooltip
                 contentStyle={{
-                  background: "#222327",
-                  border: "1px solid #3a3b40",
+                  background: "#0d0d0f",
+                  border: "1px solid #18181b",
                   borderRadius: 0,
-                  color: "#f0f0f2",
+                  color: "#fafafa",
                   fontFamily: "var(--font-mono)",
                   fontSize: 11,
                 }}

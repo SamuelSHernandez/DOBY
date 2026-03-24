@@ -8,6 +8,7 @@ import {
   Wallet,
   Wrench,
   BookOpen,
+  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const iconMap: Record<string, React.ElementType> = {
   wallet: Wallet,
   wrench: Wrench,
   "book-open": BookOpen,
+  "sliders-horizontal": SlidersHorizontal,
 };
 
 const NAV_ITEMS = [
@@ -25,6 +27,7 @@ const NAV_ITEMS = [
   { label: "Finances", href: "/finances", icon: "wallet" },
   { label: "Upkeep", href: "/upkeep", icon: "wrench" },
   { label: "Reference", href: "/reference", icon: "book-open" },
+  { label: "Admin", href: "/admin", icon: "sliders-horizontal" },
 ];
 
 export default function Sidebar() {

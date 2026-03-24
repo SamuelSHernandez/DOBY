@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Doby palette */
-  --color-carbon: #1C1D21;
-  --color-panel: #222327;
-  --color-surface: #28292e;
-  --color-border: #3a3b40;
-  --color-border-bright: #4e4f55;
+  /* Doby palette — near-black zinc scale */
+  --color-carbon: #09090b;
+  --color-panel: #0d0d0f;
+  --color-surface: #111113;
+  --color-border: #18181b;
+  --color-border-bright: #27272a;
   --color-azure: #3083DC;
-  --color-azure-dim: rgba(48, 131, 220, 0.1);
+  --color-azure-dim: rgba(48, 131, 220, 0.08);
   --color-sea-green: #058C42;
   --color-saffron: #FE9000;
   --color-oxblood: #95190C;
-  --color-oxblood-dim: rgba(149, 25, 12, 0.1);
-  --color-text-primary: #f0f0f2;
-  --color-text-secondary: #c8c9cc;
-  --color-text-tertiary: #8a8b91;
+  --color-oxblood-dim: rgba(149, 25, 12, 0.08);
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #3f3f46;
   --font-mono: "IBM Plex Mono", monospace;
 
   /* shadcn/ui mappings */
@@ -23,31 +23,31 @@
   --radius-md: 0px;
   --radius-lg: 0px;
   --radius-xl: 0px;
-  --color-background: #1C1D21;
-  --color-foreground: #f0f0f2;
-  --color-card: #28292e;
-  --color-card-foreground: #f0f0f2;
-  --color-popover: #222327;
-  --color-popover-foreground: #f0f0f2;
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-card: #111113;
+  --color-card-foreground: #fafafa;
+  --color-popover: #0d0d0f;
+  --color-popover-foreground: #fafafa;
   --color-primary: #3083DC;
   --color-primary-foreground: #ffffff;
-  --color-secondary: #28292e;
-  --color-secondary-foreground: #c8c9cc;
-  --color-muted: #28292e;
-  --color-muted-foreground: #8a8b91;
-  --color-accent: #28292e;
-  --color-accent-foreground: #f0f0f2;
+  --color-secondary: #111113;
+  --color-secondary-foreground: #a1a1aa;
+  --color-muted: #111113;
+  --color-muted-foreground: #52525b;
+  --color-accent: #111113;
+  --color-accent-foreground: #fafafa;
   --color-destructive: #95190C;
-  --color-destructive-foreground: #f0f0f2;
-  --color-input: #3a3b40;
+  --color-destructive-foreground: #fafafa;
+  --color-input: #18181b;
   --color-ring: #3083DC;
-  --color-sidebar-background: #222327;
-  --color-sidebar-foreground: #c8c9cc;
+  --color-sidebar-background: #0d0d0f;
+  --color-sidebar-foreground: #a1a1aa;
   --color-sidebar-primary: #3083DC;
   --color-sidebar-primary-foreground: #ffffff;
-  --color-sidebar-accent: rgba(48, 131, 220, 0.1);
-  --color-sidebar-accent-foreground: #f0f0f2;
-  --color-sidebar-border: #3a3b40;
+  --color-sidebar-accent: rgba(48, 131, 220, 0.08);
+  --color-sidebar-accent-foreground: #fafafa;
+  --color-sidebar-border: #18181b;
   --color-sidebar-ring: #3083DC;
 }
 
@@ -57,16 +57,13 @@ body {
   font-family: var(--font-mono);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent overscroll bounce on iOS */
   overscroll-behavior: none;
 }
 
-/* Prevent iOS zoom on input focus — must be ≥16px */
 input, select, textarea {
   font-size: 16px;
 }
 
-/* Touch target helper — apply to standalone interactive elements */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
@@ -75,7 +72,6 @@ input, select, textarea {
   justify-content: center;
 }
 
-/* Safe area support for notched devices */
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
@@ -85,7 +81,6 @@ input, select, textarea {
   }
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

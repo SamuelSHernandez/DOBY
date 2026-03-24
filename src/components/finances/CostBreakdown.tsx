@@ -24,7 +24,7 @@ export default function CostBreakdown() {
   }
   for (const [type, amounts] of Object.entries(utilByType)) {
     const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-    const color = type === "Electric" || type === "Gas" ? "#3083DC" : type === "Water" || type === "Sewer" ? "#058C42" : "#8a8b91";
+    const color = type === "Electric" || type === "Gas" ? "#3083DC" : type === "Water" || type === "Sewer" ? "#058C42" : "#52525b";
     items.push({ label: type === "Electric" || type === "Gas" ? `HVAC / ${type}` : type, amount: Math.round(avg), color });
   }
 
@@ -37,7 +37,7 @@ export default function CostBreakdown() {
   if (expenses.length > 0) {
     const total = expenses.reduce((sum, e) => sum + e.amount, 0);
     const months = new Set(expenses.map((e) => e.date.slice(0, 7))).size || 1;
-    items.push({ label: "Maintenance reserve", amount: Math.round(total / months), color: "#c8c9cc" });
+    items.push({ label: "Maintenance reserve", amount: Math.round(total / months), color: "#71717a" });
   }
 
   const sorted = items.sort((a, b) => b.amount - a.amount);
