@@ -112,6 +112,7 @@ export interface HomeSystem {
   name: string;
   icon: string;
   category: SystemCategory;
+  scope: "whole-home" | "room-specific";
   installDate: string;
   lastServiceDate: string;
   nextServiceDate: string;
@@ -207,6 +208,28 @@ export interface DocumentRef {
   location: string;
 }
 
+// ─── Feature Flags ───
+export interface FeatureFlags {
+  temperature: boolean;
+  humidity: boolean;
+  askDoby: boolean;
+  advisories: boolean;
+  alertBanner: boolean;
+  seasonalChecklist: boolean;
+  projectTracker: boolean;
+  utilityTracker: boolean;
+  expenseTracker: boolean;
+  insurancePanel: boolean;
+  contractorDirectory: boolean;
+  documentIndex: boolean;
+  emergencyPanel: boolean;
+  wishlist: boolean;
+  materials: boolean;
+  mortgageCalculator: boolean;
+  costBreakdown: boolean;
+  roomCostAttribution: boolean;
+}
+
 // ─── Root Store State ───
 export interface DobyState {
   property: Property;
@@ -223,4 +246,5 @@ export interface DobyState {
   contractors: Contractor[];
   documents: DocumentRef[];
   customTasks: CustomTask[];
+  featureFlags: FeatureFlags;
 }

@@ -5,6 +5,7 @@ import type {
   InsurancePolicy,
   EmergencyInfo,
   RoomMaterials,
+  FeatureFlags,
   DobyState,
 } from "./types";
 
@@ -74,6 +75,27 @@ export const defaultMaterials: RoomMaterials = {
   tileBrand: "",
 };
 
+export const defaultFeatureFlags: FeatureFlags = {
+  temperature: false,
+  humidity: false,
+  askDoby: true,
+  advisories: true,
+  alertBanner: true,
+  seasonalChecklist: true,
+  projectTracker: true,
+  utilityTracker: true,
+  expenseTracker: true,
+  insurancePanel: true,
+  contractorDirectory: true,
+  documentIndex: true,
+  emergencyPanel: true,
+  wishlist: true,
+  materials: true,
+  mortgageCalculator: true,
+  costBreakdown: true,
+  roomCostAttribution: true,
+};
+
 export const defaultState: DobyState = {
   property: defaultProperty,
   mortgage: defaultMortgage,
@@ -89,6 +111,7 @@ export const defaultState: DobyState = {
   contractors: [],
   documents: [],
   customTasks: [],
+  featureFlags: defaultFeatureFlags,
 };
 
 // ─── Presets ───
@@ -111,20 +134,22 @@ export const roomPresets = [
 export const floorOptions = ["Basement", "Main", "Upper", "Attic"] as const;
 
 export const systemPresets = [
-  { name: "HVAC", icon: "thermometer", estimatedLifeYears: 15, category: "hvac" as const },
-  { name: "Water Heater", icon: "flame", estimatedLifeYears: 12, category: "plumbing" as const },
-  { name: "Roof", icon: "home", estimatedLifeYears: 25, category: "hvac" as const },
-  { name: "Furnace", icon: "flame-kindling", estimatedLifeYears: 20, category: "hvac" as const },
-  { name: "Air Conditioner", icon: "snowflake", estimatedLifeYears: 15, category: "hvac" as const },
-  { name: "Washer", icon: "shirt", estimatedLifeYears: 10, category: "appliances" as const },
-  { name: "Dryer", icon: "wind", estimatedLifeYears: 13, category: "appliances" as const },
-  { name: "Dishwasher", icon: "utensils-crossed", estimatedLifeYears: 10, category: "appliances" as const },
-  { name: "Refrigerator", icon: "refrigerator", estimatedLifeYears: 14, category: "appliances" as const },
-  { name: "Garage Door", icon: "door-open", estimatedLifeYears: 20, category: "security" as const },
-  { name: "Sump Pump", icon: "droplets", estimatedLifeYears: 10, category: "plumbing" as const },
-  { name: "Electrical Panel", icon: "zap", estimatedLifeYears: 40, category: "electrical" as const },
-  { name: "Plumbing", icon: "pipette", estimatedLifeYears: 50, category: "plumbing" as const },
-  { name: "Septic System", icon: "cylinder", estimatedLifeYears: 25, category: "plumbing" as const },
+  // Whole-home systems — apply to entire property, no per-room linking
+  { name: "HVAC", icon: "thermometer", estimatedLifeYears: 15, category: "hvac" as const, scope: "whole-home" as const },
+  { name: "Water Heater", icon: "flame", estimatedLifeYears: 12, category: "plumbing" as const, scope: "whole-home" as const },
+  { name: "Roof", icon: "home", estimatedLifeYears: 25, category: "hvac" as const, scope: "whole-home" as const },
+  { name: "Furnace", icon: "flame-kindling", estimatedLifeYears: 20, category: "hvac" as const, scope: "whole-home" as const },
+  { name: "Air Conditioner", icon: "snowflake", estimatedLifeYears: 15, category: "hvac" as const, scope: "whole-home" as const },
+  { name: "Electrical Panel", icon: "zap", estimatedLifeYears: 40, category: "electrical" as const, scope: "whole-home" as const },
+  { name: "Plumbing", icon: "pipette", estimatedLifeYears: 50, category: "plumbing" as const, scope: "whole-home" as const },
+  { name: "Septic System", icon: "cylinder", estimatedLifeYears: 25, category: "plumbing" as const, scope: "whole-home" as const },
+  { name: "Sump Pump", icon: "droplets", estimatedLifeYears: 10, category: "plumbing" as const, scope: "whole-home" as const },
+  { name: "Garage Door", icon: "door-open", estimatedLifeYears: 20, category: "security" as const, scope: "whole-home" as const },
+  // Room-specific systems — placed in individual rooms
+  { name: "Washer", icon: "shirt", estimatedLifeYears: 10, category: "appliances" as const, scope: "room-specific" as const },
+  { name: "Dryer", icon: "wind", estimatedLifeYears: 13, category: "appliances" as const, scope: "room-specific" as const },
+  { name: "Dishwasher", icon: "utensils-crossed", estimatedLifeYears: 10, category: "appliances" as const, scope: "room-specific" as const },
+  { name: "Refrigerator", icon: "refrigerator", estimatedLifeYears: 14, category: "appliances" as const, scope: "room-specific" as const },
 ] as const;
 
 export const systemCategories = [

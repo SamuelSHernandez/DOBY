@@ -15,6 +15,7 @@ import type {
   Contractor,
   DocumentRef,
   CustomTask,
+  FeatureFlags,
   InventoryItem,
   WishlistItem,
   RoomMaterials,
@@ -94,6 +95,9 @@ interface DobyActions {
 
   // System service completion
   completeSystemService: (systemId: string) => void;
+
+  // Feature flags
+  updateFeatureFlags: (flags: Partial<FeatureFlags>) => void;
 
   // Meta
   isInitialized: () => boolean;
@@ -319,6 +323,10 @@ export const useDobyStore = create<DobyStore>()(
             return { ...sys, lastServiceDate: today, nextServiceDate: nextDate };
           }),
         })),
+
+      // Feature flags
+      updateFeatureFlags: (flags) =>
+        set((s) => ({ featureFlags: { ...s.featureFlags, ...flags } })),
 
       // Meta
       isInitialized: () => get().property.address !== "",
