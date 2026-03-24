@@ -6,6 +6,7 @@ import { yearsFractional } from "@/lib/dates";
 import { formatDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import LifecycleBar from "@/components/shared/LifecycleBar";
 import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 
 interface Props {
@@ -97,7 +98,8 @@ export default function SystemCategoryCard({ category, systems, onEdit, onDelete
               : 0;
 
             return (
-              <div key={sys.id} className="flex items-center justify-between border-b border-border/50 px-4 py-3 last:border-b-0">
+              <div key={sys.id} className="border-b border-border/50 px-4 py-3 last:border-b-0">
+                <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-text-primary">{sys.name}</p>
                   <div className="mt-0.5 flex flex-wrap gap-3 text-[11px] text-text-tertiary">
@@ -120,6 +122,12 @@ export default function SystemCategoryCard({ category, systems, onEdit, onDelete
                     <Trash2 size={14} />
                   </button>
                 </div>
+                </div>
+                {lifePct > 0 && (
+                  <div className="mt-2">
+                    <LifecycleBar percent={lifePct} />
+                  </div>
+                )}
               </div>
             );
           })}

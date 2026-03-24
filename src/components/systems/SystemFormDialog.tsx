@@ -37,6 +37,7 @@ const inputCls = "border-border bg-surface text-text-primary";
 export default function SystemFormDialog({ system, trigger, onClose }: Props) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<SystemCategory>(system?.category ?? "hvac");
+  const [scope, setScope] = useState<"whole-home" | "room-specific">(system?.scope ?? "whole-home");
   const addSystem = useDobyStore((s) => s.addSystem);
   const updateSystem = useDobyStore((s) => s.updateSystem);
   const deleteSystem = useDobyStore((s) => s.deleteSystem);
@@ -54,6 +55,7 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
       name: fd.get("name") as string,
       icon: "settings-2",
       category,
+      scope,
       installDate: (fd.get("installDate") as string) || "",
       lastServiceDate: (fd.get("lastServiceDate") as string) || "",
       nextServiceDate: (fd.get("nextServiceDate") as string) || "",
@@ -91,6 +93,7 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
     const preset = systemPresets.find((p) => p.name === name);
     if (preset) {
       setCategory(preset.category);
+      setScope(preset.scope);
       const form = document.querySelector<HTMLFormElement>("#system-form");
       if (form) {
         const nameInput = form.querySelector<HTMLInputElement>('[name="name"]');

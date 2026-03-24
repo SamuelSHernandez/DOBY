@@ -1,7 +1,6 @@
 "use client";
 
 import { useDobyStore } from "@/store";
-import EmptyState from "@/components/shared/EmptyState";
 import StatusBadge from "@/components/shared/StatusBadge";
 import { X } from "lucide-react";
 import { yearsFractional } from "@/lib/dates";
@@ -12,15 +11,16 @@ interface Props {
 }
 
 export default function RoomSystems({ roomId, systemIds }: Props) {
-  const systems = useDobyStore((s) => s.systems);
   const allSystems = useDobyStore((s) => s.systems);
   const linkSystem = useDobyStore((s) => s.linkSystem);
   const unlinkSystem = useDobyStore((s) => s.unlinkSystem);
 
-  const linked = systems.filter((s) => systemIds.includes(s.id));
-  const available = allSystems.filter((s) => !systemIds.includes(s.id));
+  // Only show room-specific systems for linking — whole-home systems apply automatically
+  const roomSpecific = allSystems.filter((s) => s.scope !== "whole-home");
+  const linked = roomSpecific.filter((s) => systemIds.includes(s.id));
+  const available = roomSpecific.filter((s) => !systemIds.includes(s.id));
 
-  function getVariant(sys: typeof systems[0]) {
+  function getVariant(sys: typeof allSystems[0]) {
     if (!sys.installDate) return "neutral" as const;
     const age = yearsFractional(sys.installDate);
     const pct = (age / sys.estimatedLifeYears) * 100;
@@ -29,55 +29,57 @@ export default function RoomSystems({ roomId, systemIds }: Props) {
     return "nominal" as const;
   }
 
+  if (roomSpecific.length === 0) {
+    return (
+      <p className="py-4 text-xs text-text-tertiary">
+        No room-specific systems configured. Add appliances from the Systems page to link them here.
+      </p>
+    );
+  }
+
   return (
     <div>
-      {linked.length === 0 && available.length === 0 ? (
-        <EmptyState message="No systems configured — add systems from the Systems page first" />
-      ) : (
-        <>
-          {linked.length > 0 && (
-            <div className="mb-4">
-              <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
-                Linked Systems
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {linked.map((sys) => (
-                  <div
-                    key={sys.id}
-                    className="flex min-h-[44px] items-center gap-2 border border-border bg-surface px-3 py-1.5"
-                  >
-                    <StatusBadge label={sys.name} variant={getVariant(sys)} />
-                    <button
-                      onClick={() => unlinkSystem(roomId, sys.id)}
-                      className="text-text-tertiary hover:text-oxblood"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
+      {linked.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
+            Linked to this room
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {linked.map((sys) => (
+              <div
+                key={sys.id}
+                className="flex min-h-[44px] items-center gap-2 border border-border bg-surface px-3 py-1.5"
+              >
+                <StatusBadge label={sys.name} variant={getVariant(sys)} />
+                <button
+                  onClick={() => unlinkSystem(roomId, sys.id)}
+                  className="text-text-tertiary hover:text-oxblood"
+                >
+                  <X size={12} />
+                </button>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+        </div>
+      )}
 
-          {available.length > 0 && (
-            <div>
-              <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
-                Available Systems
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {available.map((sys) => (
-                  <button
-                    key={sys.id}
-                    onClick={() => linkSystem(roomId, sys.id)}
-                    className="min-h-[44px] border border-border bg-surface px-3 py-2 text-[11px] text-text-secondary transition-colors hover:border-azure hover:text-azure"
-                  >
-                    + {sys.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+      {available.length > 0 && (
+        <div>
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
+            Available to link
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {available.map((sys) => (
+              <button
+                key={sys.id}
+                onClick={() => linkSystem(roomId, sys.id)}
+                className="min-h-[44px] border border-border bg-surface px-3 py-2 text-[11px] text-text-secondary transition-colors hover:border-azure hover:text-azure"
+              >
+                + {sys.name}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
