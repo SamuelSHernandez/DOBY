@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import type { EmergencyInfo } from "@/store/types";
 
-const fields: { key: keyof EmergencyInfo; label: string }[] = [
+const fields: { key: keyof EmergencyInfo; label: string; sensitive?: boolean }[] = [
   { key: "waterMainLocation", label: "Water Main Shutoff" },
   { key: "gasShutoffLocation", label: "Gas Shutoff" },
   { key: "breakerPanelLocation", label: "Breaker Panel" },
   { key: "sewerCleanoutLocation", label: "Sewer Cleanout" },
-  { key: "securityCode", label: "Security Code" },
-  { key: "wifiPassword", label: "WiFi Password" },
+  { key: "securityCode", label: "Security Code", sensitive: true },
+  { key: "wifiPassword", label: "WiFi Password", sensitive: true },
 ];
 
 export default function EmergencyPanel() {
@@ -39,6 +39,7 @@ export default function EmergencyPanel() {
               {f.label}
             </Label>
             <Input
+              type={f.sensitive ? "password" : "text"}
               defaultValue={info[f.key]}
               onBlur={(e) => handleBlur(f.key, e.target.value)}
               className="mt-1 border-border bg-carbon text-text-primary"

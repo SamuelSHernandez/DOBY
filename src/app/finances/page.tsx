@@ -12,9 +12,12 @@ import PageHeader from "@/components/layout/PageHeader";
 import StatBox from "@/components/shared/StatBox";
 import CostBreakdown from "@/components/finances/CostBreakdown";
 import RoomCostAttribution from "@/components/finances/RoomCostAttribution";
+import ExpenseTracker from "@/components/finances/ExpenseTracker";
+import InsurancePanel from "@/components/finances/InsurancePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useFeature } from "@/lib/useFeature";
 import { Calculator, ChevronDown, ImagePlus, Save } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -26,6 +29,12 @@ export default function FinancesPage() {
   const rooms = useDobyStore((s) => s.rooms);
   const updateProperty = useDobyStore((s) => s.updateProperty);
   const updateMortgage = useDobyStore((s) => s.updateMortgage);
+
+  const showExpenses = useFeature("expenseTracker");
+  const showInsurance = useFeature("insurancePanel");
+  const showMortgageCalc = useFeature("mortgageCalculator");
+  const showCostBreakdown = useFeature("costBreakdown");
+  const showRoomCost = useFeature("roomCostAttribution");
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -46,7 +55,9 @@ export default function FinancesPage() {
     name: r.name,
     sqft: formatSqFt(r.widthFt, r.widthIn, r.heightFt, r.heightIn),
   }));
+  const totalSqFt = roomData.reduce((sum, r) => sum + r.sqft, 0);
   const highestRoom = [...roomData].sort((a, b) => b.sqft - a.sqft)[0];
+  const highestPct = highestRoom && totalSqFt > 0 ? Math.round((highestRoom.sqft / totalSqFt) * 100) : 0;
 
   function saveProperty(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -98,8 +109,19 @@ export default function FinancesPage() {
     <div>
       <PageHeader title="Finances" />
 
-      {/* Property overview cards */}
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+      {/* Property details — muted inline text */}
+      <p className="mb-4 text-[11px] text-text-tertiary">
+        {[
+          property.address,
+          property.squareFeet > 0 && `${formatNumber(property.squareFeet)} sq ft`,
+          property.yearBuilt > 0 && `Built ${property.yearBuilt}`,
+          property.hoaMonthly > 0 && `HOA ${formatCurrency(property.hoaMonthly)}/mo`,
+        ].filter(Boolean).join(" · ") || "No property details configured"}
+      </p>
+
+      {/* Valuation */}
+      <h2 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">Valuation</h2>
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatBox label="Home Price" value={property.purchasePrice > 0 ? formatCurrency(property.purchasePrice) : "—"} />
         <StatBox
           label="Current Value"
@@ -107,34 +129,44 @@ export default function FinancesPage() {
           variant={appreciationGain > 0 ? "nominal" : "default"}
         />
         <StatBox
-          label="Appreciation"
+          label={yearsOwned > 0 ? `Appreciation (${yearsOwned.toFixed(1)}yr)` : "Appreciation"}
           value={appreciationGain !== 0 ? `${appreciationGain > 0 ? "+" : ""}${formatCurrency(appreciationGain)}` : "—"}
           variant={appreciationGain > 0 ? "nominal" : appreciationGain < 0 ? "critical" : "default"}
         />
-        <StatBox label="Rate" value={appreciation.annualRate > 0 ? `${appreciation.annualRate}% / yr` : "—"} />
+        <StatBox label="Appreciation Rate" value={appreciation.annualRate > 0 ? `${appreciation.annualRate}% / yr` : "—"} />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-        <StatBox label="Sq Ft" value={property.squareFeet > 0 ? formatNumber(property.squareFeet) : "—"} />
-        <StatBox label="Year Built" value={property.yearBuilt > 0 ? String(property.yearBuilt) : "—"} />
-        <StatBox label="Address" value={property.address || "—"} />
-        <StatBox label="HOA" value={property.hoaMonthly > 0 ? `${formatCurrency(property.hoaMonthly)}/mo` : "—"} />
-      </div>
-
-      {/* Financial summary cards */}
+      {/* Monthly costs */}
+      <h2 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">Monthly Costs</h2>
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3">
         <StatBox label="Monthly Payment" value={totalMonthly > 0 ? formatCurrency(totalMonthly) : "—"} />
         <StatBox label="Annual Cost" value={annualProjection > 0 ? formatCurrency(annualProjection) : "—"} />
-        <StatBox label="Highest Cost Room" value={highestRoom ? highestRoom.name : "—"} />
+        <StatBox label="Highest Cost Room" value={highestRoom ? `${highestRoom.name} (${highestPct}%)` : "—"} />
       </div>
 
-      <div className="mb-8 grid gap-8 lg:grid-cols-2">
-        <CostBreakdown />
-        <RoomCostAttribution />
-      </div>
+      {(showCostBreakdown || showRoomCost) && (
+        <div className="mb-8 grid gap-8 lg:grid-cols-2">
+          {showCostBreakdown && <CostBreakdown />}
+          {showRoomCost && <RoomCostAttribution />}
+        </div>
+      )}
+
+      {showExpenses && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-primary">Expenses</h2>
+          <ExpenseTracker />
+        </div>
+      )}
+
+      {showInsurance && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-primary">Insurance</h2>
+          <InsurancePanel />
+        </div>
+      )}
 
       {/* Mortgage Calculator Link */}
-      <Link
+      {showMortgageCalc && <Link
         href="/finances/mortgage"
         className="mb-8 flex items-center justify-between border border-border bg-surface px-5 py-4 transition-colors hover:border-border-bright"
       >
@@ -146,7 +178,7 @@ export default function FinancesPage() {
           </div>
         </div>
         <span className="text-text-tertiary">&rsaquo;</span>
-      </Link>
+      </Link>}
 
       {/* Collapsible Property & Mortgage Details — at bottom so dashboard is visible first */}
       <div className="mb-8 border border-border bg-surface">
