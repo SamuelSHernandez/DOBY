@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { Room, HomeSystem } from "@/store/types";
 import { formatDimensions } from "@/lib/formatters";
+import { useFeature } from "@/lib/useFeature";
 
 const iconMap: Record<string, React.ElementType> = {
   sofa: Sofa, "cooking-pot": CookingPot, "bed-double": BedDouble,
@@ -23,47 +24,27 @@ interface Props {
 export default function RoomCompactCard({ room, systems }: Props) {
   const Icon = iconMap[room.icon] || Home;
   const linked = systems.filter((s) => room.systemIds.includes(s.id));
+  const showTemp = useFeature("temperature");
 
   return (
     <Link
       href={`/home/${room.id}`}
-      className="block border border-border bg-surface transition-colors hover:border-border-bright"
+      className="block rounded-[10px] border border-[#18181b] bg-[#0d0d0f] px-[18px] py-4 transition-all duration-150 hover:-translate-y-px hover:bg-[#131316]"
     >
-      <div className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Icon size={14} strokeWidth={2} className="text-text-tertiary" />
-            <span className="text-sm font-semibold text-text-primary">{room.name}</span>
-          </div>
-          <span className="text-xs text-text-tertiary" style={{ color: room.color }}>
-            &bull;
-          </span>
-        </div>
-
-        <div className="mt-2 flex items-baseline justify-between">
-          <span className="text-[11px] text-text-tertiary">
-            {formatDimensions(room.widthFt, room.widthIn)} x {formatDimensions(room.heightFt, room.heightIn)}
-          </span>
-          <span className="text-lg font-semibold text-text-primary">71&deg;</span>
-        </div>
-
-        {linked.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {linked.slice(0, 4).map((sys) => (
-              <span
-                key={sys.id}
-                className="border border-border px-1.5 py-0.5 text-[10px] text-text-tertiary"
-              >
-                {sys.name.length > 12 ? sys.name.slice(0, 12) + "…" : sys.name}
-              </span>
-            ))}
-            {linked.length > 4 && (
-              <span className="px-1.5 py-0.5 text-[10px] text-text-tertiary">
-                +{linked.length - 4}
-              </span>
-            )}
-          </div>
+      <div className="mb-3.5 flex items-start justify-between">
+        <Icon size={20} strokeWidth={1.5} className="text-[#52525b]" />
+        {showTemp && (
+          <span className="text-sm font-medium text-[#3f3f46]">71&deg;</span>
         )}
+      </div>
+      <p className="text-[13px] font-medium text-[#a1a1aa]">{room.name}</p>
+      <div className="mt-0.5 flex items-center justify-between">
+        <p className="text-[11px] text-[#27272a]">
+          {formatDimensions(room.widthFt, room.widthIn)} x {formatDimensions(room.heightFt, room.heightIn)}
+        </p>
+        <p className="text-[10px] text-[#27272a]">
+          {linked.length} device{linked.length !== 1 ? "s" : ""}
+        </p>
       </div>
     </Link>
   );

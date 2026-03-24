@@ -60,7 +60,7 @@ export default function AlertBanner() {
   const worst = alerts.sort((a, b) => b.daysOverdue - a.daysOverdue)[0];
 
   return (
-    <div className="mb-6 flex items-start gap-4 rounded-lg border border-oxblood/30 bg-oxblood/5 p-5">
+    <div className="mb-6 flex items-start gap-4 border border-oxblood/30 bg-oxblood/5 p-5">
       <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full bg-oxblood" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-text-primary">{worst.title}</p>

@@ -63,7 +63,17 @@ export default function AdvisoriesPanel() {
     });
   }
 
-  if (advisories.length === 0) return null;
+  if (advisories.length === 0) {
+    return (
+      <div>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-text-primary">Advisories</h2>
+          <span className="border border-border px-1.5 py-0.5 text-[10px] text-text-tertiary">0</span>
+        </div>
+        <p className="py-6 text-xs text-text-tertiary">All clear — no advisories at this time.</p>
+      </div>
+    );
+  }
 
   const sorted = advisories.sort((a, b) => {
     const order = { critical: 0, caution: 1, info: 2 };
