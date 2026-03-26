@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useDobyStore } from "@/store";
 import { useFeature } from "@/lib/useFeature";
 import { calculateMonthlyPayment, calculateTotalMonthly } from "@/lib/mortgage";
@@ -11,9 +12,11 @@ import SystemHomeCard from "@/components/home/SystemHomeCard";
 import UpcomingMaintenance from "@/components/home/UpcomingMaintenance";
 import AdvisoriesPanel from "@/components/home/AdvisoriesPanel";
 import AskDoby from "@/components/home/AskDoby";
+import UtilityCards from "@/components/home/UtilityCards";
 import RoomFormDialog from "@/components/home/RoomFormDialog";
 
 export default function HomePage() {
+  const [expandedSystemId, setExpandedSystemId] = useState<string | null>(null);
   const rooms = useDobyStore((s) => s.rooms);
   const systems = useDobyStore((s) => s.systems);
   const property = useDobyStore((s) => s.property);
@@ -106,12 +109,28 @@ export default function HomePage() {
             </span>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {systems.map((sys) => (
-              <SystemHomeCard key={sys.id} system={sys} />
+            {(expandedSystemId
+              ? [
+                  systems.find((s) => s.id === expandedSystemId)!,
+                  ...systems.filter((s) => s.id !== expandedSystemId),
+                ]
+              : systems
+            ).map((sys) => (
+              <SystemHomeCard
+                key={sys.id}
+                system={sys}
+                expanded={expandedSystemId === sys.id}
+                onToggle={() =>
+                  setExpandedSystemId((prev) => (prev === sys.id ? null : sys.id))
+                }
+              />
             ))}
           </div>
         </div>
       )}
+
+      {/* ── Utilities ── */}
+      <UtilityCards />
 
       {/* ── Rooms ── */}
       <div className="mb-12">

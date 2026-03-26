@@ -5,16 +5,20 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Settings2,
+  Zap,
   Wallet,
   Wrench,
   BookOpen,
   SlidersHorizontal,
+  LogOut,
 } from "lucide-react";
+import { logout } from "@/app/auth/actions";
 import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, React.ElementType> = {
   "layout-dashboard": LayoutDashboard,
   "settings-2": Settings2,
+  zap: Zap,
   wallet: Wallet,
   wrench: Wrench,
   "book-open": BookOpen,
@@ -24,6 +28,7 @@ const iconMap: Record<string, React.ElementType> = {
 const NAV_ITEMS = [
   { label: "Home", href: "/home", icon: "layout-dashboard" },
   { label: "Systems", href: "/systems", icon: "settings-2" },
+  { label: "Utilities", href: "/utilities", icon: "zap" },
   { label: "Finances", href: "/finances", icon: "wallet" },
   { label: "Upkeep", href: "/upkeep", icon: "wrench" },
   { label: "Reference", href: "/reference", icon: "book-open" },
@@ -69,6 +74,16 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="border-t border-border px-2 py-3">
+        <button
+          onClick={() => logout()}
+          className="flex w-full items-center gap-3 px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-text-tertiary transition-colors hover:text-text-primary"
+        >
+          <LogOut size={16} strokeWidth={2} />
+          Sign Out
+        </button>
+      </div>
     </aside>
   );
 }

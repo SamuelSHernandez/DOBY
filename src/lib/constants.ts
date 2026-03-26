@@ -1,6 +1,7 @@
 export const NAV_ITEMS = [
   { label: "Home", href: "/home", icon: "layout-dashboard" },
   { label: "Systems", href: "/systems", icon: "settings-2" },
+  { label: "Utilities", href: "/utilities", icon: "zap" },
   { label: "Finances", href: "/finances", icon: "wallet" },
   { label: "Upkeep", href: "/upkeep", icon: "wrench" },
   { label: "Reference", href: "/reference", icon: "book-open" },

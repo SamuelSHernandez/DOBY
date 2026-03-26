@@ -46,7 +46,7 @@ function toCamel(obj: any): Record<string, unknown> {
 
 // ─── Load all data from Supabase ───
 
-export async function loadFromSupabase(): Promise<Partial<DobyState> | null> {
+export async function loadFromSupabase(userId: string): Promise<Partial<DobyState> | null> {
   try {
     const [
       { data: propRows },
@@ -64,20 +64,20 @@ export async function loadFromSupabase(): Promise<Partial<DobyState> | null> {
       { data: contRows },
       { data: docRows },
     ] = await Promise.all([
-      supabase.from("property").select("*").limit(1),
-      supabase.from("mortgage").select("*").limit(1),
-      supabase.from("appreciation").select("*").limit(1),
-      supabase.from("insurance").select("*").limit(1),
-      supabase.from("rooms").select("*"),
-      supabase.from("systems").select("*"),
-      supabase.from("expenses").select("*"),
-      supabase.from("utilities").select("*"),
-      supabase.from("projects").select("*"),
-      supabase.from("seasonal_tasks").select("*"),
-      supabase.from("custom_tasks").select("*"),
-      supabase.from("emergency_info").select("*").limit(1),
-      supabase.from("contractors").select("*"),
-      supabase.from("documents").select("*"),
+      supabase.from("property").select("*").eq("user_id", userId).limit(1),
+      supabase.from("mortgage").select("*").eq("user_id", userId).limit(1),
+      supabase.from("appreciation").select("*").eq("user_id", userId).limit(1),
+      supabase.from("insurance").select("*").eq("user_id", userId).limit(1),
+      supabase.from("rooms").select("*").eq("user_id", userId),
+      supabase.from("systems").select("*").eq("user_id", userId),
+      supabase.from("expenses").select("*").eq("user_id", userId),
+      supabase.from("utilities").select("*").eq("user_id", userId),
+      supabase.from("projects").select("*").eq("user_id", userId),
+      supabase.from("seasonal_tasks").select("*").eq("user_id", userId),
+      supabase.from("custom_tasks").select("*").eq("user_id", userId),
+      supabase.from("emergency_info").select("*").eq("user_id", userId).limit(1),
+      supabase.from("contractors").select("*").eq("user_id", userId),
+      supabase.from("documents").select("*").eq("user_id", userId),
     ]);
 
     // If no property row exists, DB is empty — return null to keep localStorage data
@@ -149,15 +149,15 @@ export async function loadFromSupabase(): Promise<Partial<DobyState> | null> {
 
 // ─── Save full state to Supabase ───
 
-export async function saveToSupabase(state: DobyState): Promise<void> {
+export async function saveToSupabase(state: DobyState, userId: string): Promise<void> {
   try {
     // Upsert singleton rows (property, mortgage, appreciation, insurance, emergency)
     await Promise.all([
-      upsertSingleton("property", state.property),
-      upsertSingleton("mortgage", state.mortgage),
-      upsertSingleton("appreciation", state.appreciation),
-      upsertSingleton("insurance", state.insurance),
-      upsertSingleton("emergency_info", state.emergencyInfo),
+      upsertSingleton("property", state.property, userId),
+      upsertSingleton("mortgage", state.mortgage, userId),
+      upsertSingleton("appreciation", state.appreciation, userId),
+      upsertSingleton("insurance", state.insurance, userId),
+      upsertSingleton("emergency_info", state.emergencyInfo, userId),
     ]);
 
     // Sync arrays — delete removed, upsert existing
@@ -167,34 +167,38 @@ export async function saveToSupabase(state: DobyState): Promise<void> {
         ...toSnake(rest),
         materials,
         system_ids: systemIds,
+        user_id: userId,
       };
-    });
+    }, userId);
 
     // Sync inventory and wishlist per room
     for (const room of state.rooms) {
       await syncArray("inventory_items", room.inventory, (item) => ({
         ...toSnake(item),
         room_id: room.id,
-      }), "room_id", room.id);
+        user_id: userId,
+      }), userId, "room_id", room.id);
 
       await syncArray("wishlist_items", room.wishlist, (item) => ({
         ...toSnake(item),
         room_id: room.id,
-      }), "room_id", room.id);
+        user_id: userId,
+      }), userId, "room_id", room.id);
     }
 
-    await syncArray("systems", state.systems, (s) => toSnake(s));
-    await syncArray("expenses", state.expenses, (e) => toSnake(e));
-    await syncArray("utilities", state.utilities, (u) => toSnake(u));
-    await syncArray("projects", state.projects, (p) => toSnake(p));
-    await syncArray("contractors", state.contractors, (c) => toSnake(c));
-    await syncArray("documents", state.documents, (d) => toSnake(d));
-    await syncArray("custom_tasks", state.customTasks, (t) => toSnake(t));
+    await syncArray("systems", state.systems, (s) => ({ ...toSnake(s), user_id: userId }), userId);
+    await syncArray("expenses", state.expenses, (e) => ({ ...toSnake(e), user_id: userId }), userId);
+    await syncArray("utilities", state.utilities, (u) => ({ ...toSnake(u), user_id: userId }), userId);
+    await syncArray("projects", state.projects, (p) => ({ ...toSnake(p), user_id: userId }), userId);
+    await syncArray("contractors", state.contractors, (c) => ({ ...toSnake(c), user_id: userId }), userId);
+    await syncArray("documents", state.documents, (d) => ({ ...toSnake(d), user_id: userId }), userId);
+    await syncArray("custom_tasks", state.customTasks, (t) => ({ ...toSnake(t), user_id: userId }), userId);
 
     // Seasonal tasks — upsert each key
     const seasonalRows = Object.entries(state.seasonalTasks).map(([key, completed]) => ({
       key,
       completed,
+      user_id: userId,
     }));
     if (seasonalRows.length > 0) {
       await supabase.from("seasonal_tasks").upsert(seasonalRows, { onConflict: "key" });
@@ -206,10 +210,11 @@ export async function saveToSupabase(state: DobyState): Promise<void> {
 
 // ─── Helpers ───
 
-async function upsertSingleton(table: string, data: object) {
+async function upsertSingleton(table: string, data: object, userId: string) {
   const snaked = toSnake(data as Record<string, unknown>);
-  // Check if row exists
-  const { data: existing } = await supabase.from(table).select("id").limit(1);
+  snaked.user_id = userId;
+  // Check if row exists for this user
+  const { data: existing } = await supabase.from(table).select("id").eq("user_id", userId).limit(1);
   if (existing && existing.length > 0) {
     const { id: _existingId, ...updateData } = snaked;
     await supabase.from(table).update({ ...updateData, updated_at: new Date().toISOString() }).eq("id", existing[0].id);
@@ -222,11 +227,12 @@ async function syncArray<T extends { id: string }>(
   table: string,
   items: T[],
   transform: (item: T) => Record<string, unknown>,
+  userId: string,
   filterCol?: string,
   filterVal?: string,
 ) {
-  // Get existing IDs
-  let query = supabase.from(table).select("id");
+  // Get existing IDs for this user
+  let query = supabase.from(table).select("id").eq("user_id", userId);
   if (filterCol && filterVal) {
     query = query.eq(filterCol, filterVal);
   }
