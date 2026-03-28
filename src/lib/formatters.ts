@@ -35,9 +35,14 @@ export function formatNumber(value: number): string {
 }
 
 export function formatSqFt(widthFt: number, widthIn: number, heightFt: number, heightIn: number): number {
-  const widthTotal = widthFt + widthIn / 12;
-  const heightTotal = heightFt + heightIn / 12;
+  const widthTotal = (widthFt || 0) + (widthIn || 0) / 12;
+  const heightTotal = (heightFt || 0) + (heightIn || 0) / 12;
   return Math.round(widthTotal * heightTotal);
+}
+
+export function formatSqFtDisplay(widthFt: number, widthIn: number, heightFt: number, heightIn: number): string {
+  if (!widthFt && !widthIn && !heightFt && !heightIn) return "— sq ft";
+  return `${formatSqFt(widthFt, widthIn, heightFt, heightIn).toLocaleString()} sq ft`;
 }
 
 export function formatDimensions(ft: number, inches: number): string {

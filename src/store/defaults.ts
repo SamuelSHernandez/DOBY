@@ -94,10 +94,13 @@ export const defaultFeatureFlags: FeatureFlags = {
   mortgageCalculator: true,
   costBreakdown: true,
   roomCostAttribution: true,
+  floorPlanEditor: true,
+  homeFloorPlan: true,
 };
 
 export const defaultState: DobyState = {
   property: defaultProperty,
+  globalMaterials: defaultMaterials,
   mortgage: defaultMortgage,
   appreciation: defaultAppreciation,
   insurance: defaultInsurance,
@@ -111,6 +114,7 @@ export const defaultState: DobyState = {
   contractors: [],
   documents: [],
   customTasks: [],
+  floorPlans: {},
   featureFlags: defaultFeatureFlags,
 };
 
@@ -145,6 +149,7 @@ export const systemPresets = [
   { name: "Septic System", icon: "cylinder", estimatedLifeYears: 25, category: "plumbing" as const, scope: "whole-home" as const },
   { name: "Sump Pump", icon: "droplets", estimatedLifeYears: 10, category: "plumbing" as const, scope: "whole-home" as const },
   { name: "Garage Door", icon: "door-open", estimatedLifeYears: 20, category: "security" as const, scope: "whole-home" as const },
+  { name: "WiFi / Network", icon: "wifi", estimatedLifeYears: 7, category: "network" as const, scope: "whole-home" as const },
   // Room-specific systems — placed in individual rooms
   { name: "Washer", icon: "shirt", estimatedLifeYears: 10, category: "appliances" as const, scope: "room-specific" as const },
   { name: "Dryer", icon: "wind", estimatedLifeYears: 13, category: "appliances" as const, scope: "room-specific" as const },

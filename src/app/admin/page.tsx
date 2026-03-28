@@ -40,6 +40,10 @@ const features: FeatureToggle[] = [
   // Room Detail
   { key: "wishlist", label: "Wishlist", description: "Room wishlist with priority levels", group: "Room Detail" },
   { key: "materials", label: "Materials & Finishes", description: "Paint colors, flooring, tile per room", group: "Room Detail" },
+
+  // Floor Plans
+  { key: "floorPlanEditor", label: "Room Floor Plans", description: "Per-room floor plan editor with walls, doors, and windows", group: "Floor Plans" },
+  { key: "homeFloorPlan", label: "Home Floor Plan", description: "Whole-home blueprint assembly view with color-coded rooms", group: "Floor Plans" },
 ];
 
 const groups = [...new Set(features.map((f) => f.group))];
@@ -87,6 +91,7 @@ export default function AdminPage() {
               insurancePanel: false, contractorDirectory: true, documentIndex: true,
               emergencyPanel: true, wishlist: true, materials: false,
               mortgageCalculator: true, costBreakdown: true, roomCostAttribution: true,
+              floorPlanEditor: true, homeFloorPlan: true,
             });
             toast.success("Recommended settings applied");
           }}

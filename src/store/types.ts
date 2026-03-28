@@ -77,6 +77,11 @@ export interface InventoryItem {
   purchaseDate: string;
   condition: Condition;
   notes: string;
+  imageUrl?: string;
+  vendor?: string;
+  warrantyExpires?: string;
+  receiptUrl?: string;
+  purchaseSource?: string;
 }
 
 export interface WishlistItem {
@@ -86,6 +91,21 @@ export interface WishlistItem {
   url: string;
   priority: Priority;
   notes: string;
+  imageUrl?: string;
+  vendor?: string;
+}
+
+export interface RoomPhoto {
+  id: string;
+  url: string;
+  caption?: string;
+  date?: string;
+}
+
+export interface MaintenanceEntry {
+  id: string;
+  date: string;
+  description: string;
 }
 
 export interface Room {
@@ -104,6 +124,9 @@ export interface Room {
   wishlist: WishlistItem[];
   materials: RoomMaterials;
   systemIds: string[];
+  notes?: string;
+  photos?: RoomPhoto[];
+  maintenanceLog?: MaintenanceEntry[];
 }
 
 // ─── Systems ───
@@ -228,11 +251,54 @@ export interface FeatureFlags {
   mortgageCalculator: boolean;
   costBreakdown: boolean;
   roomCostAttribution: boolean;
+  floorPlanEditor: boolean;
+  homeFloorPlan: boolean;
+}
+
+// ─── Floor Plans ───
+export interface FPPoint { x: number; y: number }
+
+export interface FPWall {
+  id: string;
+  start: FPPoint;
+  end: FPPoint;
+  thickness: number;
+}
+
+export type FPOpeningType = "door" | "closet-door" | "sliding-door" | "window";
+
+export interface FPOpening {
+  id: string;
+  wallId: string;
+  type: FPOpeningType;
+  position: number; // 0–1 parametric along wall
+  width: number;
+}
+
+export interface FPLabel {
+  id: string;
+  position: FPPoint;
+  text: string;
+}
+
+export interface FPRoomPlacement {
+  roomId: string;
+  position: FPPoint; // top-left corner on home canvas
+}
+
+export interface FloorPlan {
+  id: string; // "home" or a room id
+  walls: FPWall[];
+  openings: FPOpening[];
+  labels: FPLabel[];
+  roomPlacements?: FPRoomPlacement[]; // only used on the "home" plan
+  gridSize: number;
 }
 
 // ─── Root Store State ───
 export interface DobyState {
   property: Property;
+  globalMaterials: RoomMaterials;
   mortgage: Mortgage;
   appreciation: Appreciation;
   insurance: InsurancePolicy;
@@ -246,5 +312,6 @@ export interface DobyState {
   contractors: Contractor[];
   documents: DocumentRef[];
   customTasks: CustomTask[];
+  floorPlans: Record<string, FloorPlan>;
   featureFlags: FeatureFlags;
 }

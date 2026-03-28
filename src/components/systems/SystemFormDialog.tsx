@@ -41,7 +41,16 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
   const addSystem = useDobyStore((s) => s.addSystem);
   const updateSystem = useDobyStore((s) => s.updateSystem);
   const deleteSystem = useDobyStore((s) => s.deleteSystem);
+  const rooms = useDobyStore((s) => s.rooms);
+  const linkSystem = useDobyStore((s) => s.linkSystem);
+  const unlinkSystem = useDobyStore((s) => s.unlinkSystem);
   const isEditing = !!system;
+
+  // Track which rooms this system is assigned to (for room-specific)
+  const [assignedRoomIds, setAssignedRoomIds] = useState<Set<string>>(() => {
+    if (!system) return new Set<string>();
+    return new Set(rooms.filter((r) => r.systemIds.includes(system.id)).map((r) => r.id));
+  });
 
   function handleClose() {
     setOpen(false);
@@ -79,8 +88,32 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
 
     if (isEditing) {
       updateSystem(system.id, data);
+      // Sync room assignments for room-specific systems
+      if (scope === "room-specific") {
+        const currentRoomIds = new Set(rooms.filter((r) => r.systemIds.includes(system.id)).map((r) => r.id));
+        // Unlink rooms that were removed
+        for (const rid of currentRoomIds) {
+          if (!assignedRoomIds.has(rid)) unlinkSystem(rid, system.id);
+        }
+        // Link new rooms
+        for (const rid of assignedRoomIds) {
+          if (!currentRoomIds.has(rid)) linkSystem(rid, system.id);
+        }
+      } else {
+        // Switching to whole-home — unlink from all rooms (no longer needed)
+        for (const r of rooms) {
+          if (r.systemIds.includes(system.id)) unlinkSystem(r.id, system.id);
+        }
+      }
     } else {
-      addSystem({ id: generateId(), ...data });
+      const newId = generateId();
+      addSystem({ id: newId, ...data });
+      // Assign to selected rooms
+      if (scope === "room-specific") {
+        for (const rid of assignedRoomIds) {
+          linkSystem(rid, newId);
+        }
+      }
     }
     handleClose();
   }
@@ -143,6 +176,44 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
             </Select>
           </Field>
         </div>
+
+        {/* Scope */}
+        <Field label="Scope">
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setScope("whole-home")}
+              className={`flex-1 border px-3 py-2 text-[11px] transition-colors ${scope === "whole-home" ? "border-azure bg-azure/10 text-azure" : "border-border text-text-secondary"}`}>
+              Whole Home
+            </button>
+            <button type="button" onClick={() => setScope("room-specific")}
+              className={`flex-1 border px-3 py-2 text-[11px] transition-colors ${scope === "room-specific" ? "border-azure bg-azure/10 text-azure" : "border-border text-text-secondary"}`}>
+              Room-Specific
+            </button>
+          </div>
+        </Field>
+
+        {/* Room assignment (only for room-specific) */}
+        {scope === "room-specific" && rooms.length > 0 && (
+          <Field label="Assign to Rooms">
+            <div className="flex flex-wrap gap-2 mt-1">
+              {rooms.map((r) => {
+                const checked = assignedRoomIds.has(r.id);
+                return (
+                  <label key={r.id} className={`flex items-center gap-1.5 border px-2.5 py-1.5 text-[11px] cursor-pointer transition-colors ${checked ? "border-azure bg-azure/10 text-azure" : "border-border text-text-secondary hover:border-text-tertiary"}`}>
+                    <input type="checkbox" checked={checked} className="accent-azure"
+                      onChange={(e) => {
+                        setAssignedRoomIds((prev) => {
+                          const next = new Set(prev);
+                          e.target.checked ? next.add(r.id) : next.delete(r.id);
+                          return next;
+                        });
+                      }} />
+                    {r.name}
+                  </label>
+                );
+              })}
+            </div>
+          </Field>
+        )}
 
         {/* Common dates */}
         <div className="grid grid-cols-2 gap-4">

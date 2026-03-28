@@ -9,11 +9,13 @@ import {
   Wallet,
   Wrench,
   BookOpen,
+  PenTool,
   SlidersHorizontal,
   LogOut,
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { cn } from "@/lib/utils";
+import { useDobyStore } from "@/store";
 
 const iconMap: Record<string, React.ElementType> = {
   "layout-dashboard": LayoutDashboard,
@@ -22,13 +24,15 @@ const iconMap: Record<string, React.ElementType> = {
   wallet: Wallet,
   wrench: Wrench,
   "book-open": BookOpen,
+  "pen-tool": PenTool,
   "sliders-horizontal": SlidersHorizontal,
 };
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { label: string; href: string; icon: string; featureKeys?: string[] }[] = [
   { label: "Home", href: "/home", icon: "layout-dashboard" },
   { label: "Systems", href: "/systems", icon: "settings-2" },
   { label: "Utilities", href: "/utilities", icon: "zap" },
+  { label: "Floor Plan", href: "/floorplan", icon: "pen-tool", featureKeys: ["floorPlanEditor", "homeFloorPlan"] },
   { label: "Finances", href: "/finances", icon: "wallet" },
   { label: "Upkeep", href: "/upkeep", icon: "wrench" },
   { label: "Reference", href: "/reference", icon: "book-open" },
@@ -37,6 +41,12 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const featureFlags = useDobyStore((s) => s.featureFlags);
+
+  const visibleNav = NAV_ITEMS.filter((item) => {
+    if (!item.featureKeys) return true;
+    return item.featureKeys.some((k) => featureFlags[k as keyof typeof featureFlags]);
+  });
 
   return (
     <aside className="fixed left-0 top-0 z-30 hidden h-screen w-[200px] border-r border-border bg-panel md:flex md:flex-col">
@@ -50,7 +60,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 px-2">
-        {NAV_ITEMS.map((item) => {
+        {visibleNav.map((item) => {
           const Icon = iconMap[item.icon];
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");

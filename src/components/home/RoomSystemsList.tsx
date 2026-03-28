@@ -1,58 +1,60 @@
 "use client";
 
 import type { HomeSystem } from "@/store/types";
-import { yearsFractional } from "@/lib/dates";
+import { yearsFractional, daysUntil } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 interface Props {
   systems: HomeSystem[];
 }
 
-function getStatus(sys: HomeSystem): { label: string; color: string } {
+function getStatus(sys: HomeSystem): { label: string; dotColor: string; detail: string } {
   if (!sys.installDate || sys.estimatedLifeYears <= 0) {
-    return { label: "IDLE", color: "text-text-tertiary" };
+    return { label: "IDLE", dotColor: "bg-text-tertiary", detail: "no install date" };
   }
-  const pct = (yearsFractional(sys.installDate) / sys.estimatedLifeYears) * 100;
-  if (pct > 80) return { label: "CRITICAL", color: "text-oxblood" };
-  if (pct > 50) return { label: "AGING", color: "text-saffron" };
-  if (sys.condition === "excellent" || sys.condition === "good") {
-    return { label: "ACTIVE", color: "text-sea-green" };
-  }
-  return { label: "IDLE", color: "text-text-tertiary" };
-}
 
-function getDotColor(sys: HomeSystem): string {
-  const status = getStatus(sys);
-  if (status.label === "ACTIVE") return "bg-sea-green";
-  if (status.label === "AGING") return "bg-saffron";
-  if (status.label === "CRITICAL") return "bg-oxblood";
-  return "bg-text-tertiary";
+  const age = yearsFractional(sys.installDate);
+  const life = sys.estimatedLifeYears;
+  const pct = (age / life) * 100;
+  const ageStr = `${Math.round(age)}yr of ${life}yr`;
+
+  // Service info
+  let serviceStr = "";
+  if (sys.nextServiceDate) {
+    const days = daysUntil(sys.nextServiceDate);
+    if (days < 0) serviceStr = "service overdue";
+    else if (days < 30) serviceStr = `service in ${days}d`;
+    else if (days < 365) serviceStr = `service in ${Math.round(days / 30)}mo`;
+  }
+
+  const suffix = serviceStr ? ` · ${serviceStr}` : "";
+
+  if (pct > 80) return { label: "CRITICAL", dotColor: "bg-oxblood", detail: `${ageStr} · replacement due${suffix}` };
+  if (pct > 50) return { label: "AGING", dotColor: "bg-saffron", detail: `${ageStr} · aging${suffix}` };
+  return { label: "ACTIVE", dotColor: "bg-sea-green", detail: `${ageStr}${suffix}` };
 }
 
 export default function RoomSystemsList({ systems }: Props) {
   if (systems.length === 0) {
     return (
-      <p className="py-6 text-xs text-text-tertiary">No systems linked to this room.</p>
+      <p className="py-4 text-xs text-text-tertiary">No systems linked — manage on Systems page</p>
     );
   }
 
   return (
-    <div className="space-y-1">
+    <div className="flex flex-wrap gap-1.5">
       {systems.map((sys) => {
         const status = getStatus(sys);
         return (
-          <div
+          <span
             key={sys.id}
-            className="flex items-center justify-between border border-border bg-surface px-4 py-3"
+            className="inline-flex items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-[11px]"
+            title={`${sys.name} · ${status.detail}`}
           >
-            <div className="flex items-center gap-3">
-              <span className={cn("h-2 w-2 rounded-full", getDotColor(sys))} />
-              <span className="text-sm text-text-primary">{sys.name}</span>
-            </div>
-            <span className={cn("text-[10px] font-semibold uppercase tracking-wider", status.color)}>
-              {status.label}
-            </span>
-          </div>
+            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", status.dotColor)} />
+            <span className="text-text-primary">{sys.name}</span>
+            <span className="text-[9px] text-text-tertiary">{status.detail}</span>
+          </span>
         );
       })}
     </div>

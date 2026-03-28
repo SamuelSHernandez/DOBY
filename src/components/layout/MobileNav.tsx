@@ -9,11 +9,13 @@ import {
   Wallet,
   Wrench,
   BookOpen,
+  PenTool,
   LogOut,
   MoreHorizontal,
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { cn } from "@/lib/utils";
+import { useDobyStore } from "@/store";
 import { useState } from "react";
 
 const NAV_ITEMS: { label: string; href: string | null; icon: React.ElementType }[] = [
@@ -24,7 +26,8 @@ const NAV_ITEMS: { label: string; href: string | null; icon: React.ElementType }
   { label: "More", href: null, icon: MoreHorizontal },
 ];
 
-const MORE_ITEMS = [
+const ALL_MORE_ITEMS: { label: string; href: string; icon: React.ElementType; featureKeys?: string[] }[] = [
+  { label: "Floor Plan", href: "/floorplan", icon: PenTool, featureKeys: ["floorPlanEditor", "homeFloorPlan"] },
   { label: "Upkeep", href: "/upkeep", icon: Wrench },
   { label: "Reference", href: "/reference", icon: BookOpen },
   { label: "Admin", href: "/admin", icon: Settings2 },
@@ -33,6 +36,12 @@ const MORE_ITEMS = [
 export default function MobileNav() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const featureFlags = useDobyStore((s) => s.featureFlags);
+
+  const MORE_ITEMS = ALL_MORE_ITEMS.filter((item) => {
+    if (!item.featureKeys) return true;
+    return item.featureKeys.some((k) => featureFlags[k as keyof typeof featureFlags]);
+  });
 
   const isMoreActive = MORE_ITEMS.some(
     (item) => pathname === item.href || pathname.startsWith(item.href + "/")

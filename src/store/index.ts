@@ -16,15 +16,19 @@ import type {
   DocumentRef,
   CustomTask,
   FeatureFlags,
+  FloorPlan,
   InventoryItem,
   WishlistItem,
   RoomMaterials,
+  RoomPhoto,
+  MaintenanceEntry,
 } from "./types";
 import { defaultState } from "./defaults";
 
 interface DobyActions {
   // Property
   updateProperty: (data: Partial<Property>) => void;
+  updateGlobalMaterials: (data: Partial<RoomMaterials>) => void;
   updateMortgage: (data: Partial<Mortgage>) => void;
   updateAppreciation: (data: Partial<Appreciation>) => void;
   updateInsurance: (data: Partial<InsurancePolicy>) => void;
@@ -43,6 +47,14 @@ interface DobyActions {
   addWishlistItem: (roomId: string, item: WishlistItem) => void;
   updateWishlistItem: (roomId: string, itemId: string, data: Partial<WishlistItem>) => void;
   deleteWishlistItem: (roomId: string, itemId: string) => void;
+  purchaseWishlistItem: (roomId: string, itemId: string) => void;
+
+  // Room extras
+  updateRoomNotes: (roomId: string, notes: string) => void;
+  addRoomPhoto: (roomId: string, photo: RoomPhoto) => void;
+  deleteRoomPhoto: (roomId: string, photoId: string) => void;
+  addMaintenanceEntry: (roomId: string, entry: MaintenanceEntry) => void;
+  deleteMaintenanceEntry: (roomId: string, entryId: string) => void;
 
   // Room materials
   updateRoomMaterials: (roomId: string, materials: Partial<RoomMaterials>) => void;
@@ -96,6 +108,10 @@ interface DobyActions {
   // System service completion
   completeSystemService: (systemId: string) => void;
 
+  // Floor plans
+  saveFloorPlan: (plan: FloorPlan) => void;
+  deleteFloorPlan: (id: string) => void;
+
   // Feature flags
   updateFeatureFlags: (flags: Partial<FeatureFlags>) => void;
 
@@ -122,6 +138,8 @@ export const useDobyStore = create<DobyStore>()(
       // Property
       updateProperty: (data) =>
         set((s) => ({ property: { ...s.property, ...data } })),
+      updateGlobalMaterials: (data) =>
+        set((s) => ({ globalMaterials: { ...s.globalMaterials, ...data } })),
       updateMortgage: (data) =>
         set((s) => ({ mortgage: { ...s.mortgage, ...data } })),
       updateAppreciation: (data) =>
@@ -187,6 +205,43 @@ export const useDobyStore = create<DobyStore>()(
               : r
           ),
         })),
+      purchaseWishlistItem: (roomId, itemId) =>
+        set((s) => ({
+          rooms: s.rooms.map((r) => {
+            if (r.id !== roomId) return r;
+            const item = r.wishlist.find((i) => i.id === itemId);
+            if (!item) return r;
+            const inventoryItem: InventoryItem = {
+              id: item.id,
+              name: item.name,
+              cost: item.price,
+              purchaseDate: new Date().toISOString().slice(0, 10),
+              condition: "excellent" as const,
+              notes: item.notes,
+              imageUrl: item.imageUrl,
+              vendor: item.vendor,
+              receiptUrl: item.url || undefined,
+              purchaseSource: item.vendor || undefined,
+            };
+            return {
+              ...r,
+              wishlist: r.wishlist.filter((i) => i.id !== itemId),
+              inventory: [...r.inventory, inventoryItem],
+            };
+          }),
+        })),
+
+      // Room extras
+      updateRoomNotes: (roomId, notes) =>
+        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, notes } : r) })),
+      addRoomPhoto: (roomId, photo) =>
+        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, photos: [...(r.photos || []), photo] } : r) })),
+      deleteRoomPhoto: (roomId, photoId) =>
+        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, photos: (r.photos || []).filter((p) => p.id !== photoId) } : r) })),
+      addMaintenanceEntry: (roomId, entry) =>
+        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, maintenanceLog: [...(r.maintenanceLog || []), entry] } : r) })),
+      deleteMaintenanceEntry: (roomId, entryId) =>
+        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, maintenanceLog: (r.maintenanceLog || []).filter((e) => e.id !== entryId) } : r) })),
 
       // Room materials
       updateRoomMaterials: (roomId, materials) =>
@@ -323,6 +378,15 @@ export const useDobyStore = create<DobyStore>()(
             return { ...sys, lastServiceDate: today, nextServiceDate: nextDate };
           }),
         })),
+
+      // Floor plans
+      saveFloorPlan: (plan) =>
+        set((s) => ({ floorPlans: { ...s.floorPlans, [plan.id]: plan } })),
+      deleteFloorPlan: (id) =>
+        set((s) => {
+          const { [id]: _, ...rest } = s.floorPlans;
+          return { floorPlans: rest };
+        }),
 
       // Feature flags
       updateFeatureFlags: (flags) =>
