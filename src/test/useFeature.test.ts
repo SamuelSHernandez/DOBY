@@ -7,16 +7,6 @@ describe("useFeature fallback logic", () => {
     useDobyStore.getState().resetStore();
   });
 
-  it("temperature defaults to false", () => {
-    expect(defaultFeatureFlags.temperature).toBe(false);
-    expect(useDobyStore.getState().featureFlags.temperature).toBe(false);
-  });
-
-  it("humidity defaults to false", () => {
-    expect(defaultFeatureFlags.humidity).toBe(false);
-    expect(useDobyStore.getState().featureFlags.humidity).toBe(false);
-  });
-
   it("alertBanner defaults to true", () => {
     expect(defaultFeatureFlags.alertBanner).toBe(true);
   });
@@ -28,10 +18,9 @@ describe("useFeature fallback logic", () => {
   });
 
   it("toggling a flag preserves others", () => {
-    useDobyStore.getState().updateFeatureFlags({ temperature: true });
+    useDobyStore.getState().updateFeatureFlags({ advisories: false });
     const flags = useDobyStore.getState().featureFlags;
-    expect(flags.temperature).toBe(true);
-    expect(flags.humidity).toBe(false);
+    expect(flags.advisories).toBe(false);
     expect(flags.alertBanner).toBe(true);
     expect(flags.expenseTracker).toBe(true);
   });
