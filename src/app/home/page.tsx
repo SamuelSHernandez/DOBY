@@ -1,70 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDobyStore } from "@/store";
+import { useShallow } from "zustand/react/shallow";
 import { useFeature } from "@/lib/useFeature";
 import { calculateMonthlyPayment, calculateTotalMonthly } from "@/lib/mortgage";
 import { daysUntil } from "@/lib/dates";
+import { getSeasonalNote } from "@/lib/seasonal";
 import { formatCurrency } from "@/lib/formatters";
 import AlertBanner from "@/components/home/AlertBanner";
 import RoomCompactCard from "@/components/home/RoomCompactCard";
 import SystemHomeCard from "@/components/home/SystemHomeCard";
 import UpcomingMaintenance from "@/components/home/UpcomingMaintenance";
 import AdvisoriesPanel from "@/components/home/AdvisoriesPanel";
-import AskDoby from "@/components/home/AskDoby";
 import UtilityCards from "@/components/home/UtilityCards";
 import RoomFormDialog from "@/components/home/RoomFormDialog";
 
 export default function HomePage() {
   const [expandedSystemId, setExpandedSystemId] = useState<string | null>(null);
-  const rooms = useDobyStore((s) => s.rooms);
-  const systems = useDobyStore((s) => s.systems);
-  const property = useDobyStore((s) => s.property);
-  const mortgage = useDobyStore((s) => s.mortgage);
-  const utilities = useDobyStore((s) => s.utilities);
-  const seasonalTasks = useDobyStore((s) => s.seasonalTasks);
-
+  const { rooms, systems, property, mortgage, utilities } = useDobyStore(useShallow((s) => ({
+    rooms: s.rooms, systems: s.systems, property: s.property,
+    mortgage: s.mortgage, utilities: s.utilities,
+  })));
   const showAlertBanner = useFeature("alertBanner");
   const showAdvisories = useFeature("advisories");
-  const showAskDoby = useFeature("askDoby");
 
-  const monthlyPI = calculateMonthlyPayment(mortgage.loanAmount, mortgage.interestRate, mortgage.termYears);
-  const totalMonthly = calculateTotalMonthly(monthlyPI, mortgage.propertyTaxAnnual, mortgage.homeInsuranceAnnual, mortgage.pmi);
+  const totalMonthly = useMemo(() => {
+    const monthlyPI = calculateMonthlyPayment(mortgage.loanAmount, mortgage.interestRate, mortgage.termYears);
+    return calculateTotalMonthly(monthlyPI, mortgage.propertyTaxAnnual, mortgage.homeInsuranceAnnual, mortgage.pmi);
+  }, [mortgage]);
 
-  const electricBills = utilities.filter((u) => u.type === "Electric").sort((a, b) => b.date.localeCompare(a.date));
-  const latestEnergy = electricBills.length > 0 ? `${electricBills[0].amount} kWh` : "—";
+  const latestEnergy = useMemo(() => {
+    const electricBills = utilities.filter((u) => u.type === "Electric").sort((a, b) => b.date.localeCompare(a.date));
+    return electricBills.length > 0 ? `${electricBills[0].amount} kWh` : "—";
+  }, [utilities]);
 
-  const overdueServices = systems.filter((s) => s.nextServiceDate && daysUntil(s.nextServiceDate) < 0).length;
-  const openTasks = overdueServices;
+  const openTasks = useMemo(() =>
+    systems.filter((s) => s.nextServiceDate && daysUntil(s.nextServiceDate) < 0).length,
+    [systems]
+  );
 
-  // Seasonal advisory
-  const month = new Date().getMonth();
-  let seasonalNote: { label: string; title: string; description: string } | null = null;
-  if (month >= 2 && month <= 4) {
-    seasonalNote = {
-      label: "Seasonal",
-      title: "Spring maintenance window",
-      description: "Gutter cleaning, exterior inspection, and AC pre-season check before May.",
-    };
-  } else if (month >= 5 && month <= 7) {
-    seasonalNote = {
-      label: "Seasonal",
-      title: "Summer maintenance window",
-      description: "Check irrigation, trim trees, inspect deck/patio, and service dryer vent.",
-    };
-  } else if (month >= 8 && month <= 10) {
-    seasonalNote = {
-      label: "Seasonal",
-      title: "Fall maintenance window",
-      description: "Furnace service, gutter cleaning, weatherization, and drain outdoor faucets.",
-    };
-  } else {
-    seasonalNote = {
-      label: "Seasonal",
-      title: "Winter maintenance window",
-      description: "Check for ice dams, inspect insulation, test backup generator, and plan spring projects.",
-    };
-  }
+  const seasonalNote = getSeasonalNote();
 
   return (
     <div>
@@ -73,10 +49,10 @@ export default function HomePage() {
       {/* ── Header ── */}
       <div className="mb-12 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#fafafa]">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
             {property.address || "DOBY"}
           </h1>
-          <p className="mt-1 text-xs tracking-wide text-[#3f3f46]">
+          <p className="mt-1 text-xs tracking-wide text-text-tertiary">
             {[
               property.address && property.address.split(",").slice(1).join(",").trim(),
               property.yearBuilt > 0 && `Built ${property.yearBuilt}`,
@@ -90,8 +66,8 @@ export default function HomePage() {
             { label: "Open Tasks", val: openTasks > 0 ? String(openTasks) : "—" },
           ].map((m) => (
             <div key={m.label} className="text-right">
-              <p className="text-[10px] uppercase tracking-widest text-[#27272a]">{m.label}</p>
-              <p className={`mt-0.5 text-base font-semibold ${m.val === "—" ? "text-[#1e1e21]" : "text-[#71717a]"}`}>
+              <p className="text-[10px] uppercase tracking-widest text-border-bright">{m.label}</p>
+              <p className={`mt-0.5 text-base font-semibold ${m.val === "—" ? "text-text-ghost" : "text-text-muted"}`}>
                 {m.val}
               </p>
             </div>
@@ -103,8 +79,8 @@ export default function HomePage() {
       {systems.length > 0 && (
         <div className="mb-12">
           <div className="mb-4 flex items-center gap-2.5">
-            <h2 className="text-sm font-semibold tracking-tight text-[#a1a1aa]">Systems</h2>
-            <span className="rounded bg-[#111113] px-[7px] py-[2px] text-[11px] text-[#3f3f46]">
+            <h2 className="text-sm font-semibold tracking-tight text-text-secondary">Systems</h2>
+            <span className="rounded bg-surface px-[7px] py-[2px] text-[11px] text-text-tertiary">
               {systems.length}
             </span>
           </div>
@@ -136,15 +112,15 @@ export default function HomePage() {
       <div className="mb-12">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <h2 className="text-sm font-semibold tracking-tight text-[#a1a1aa]">Rooms</h2>
-            <span className="rounded bg-[#111113] px-[7px] py-[2px] text-[11px] text-[#3f3f46]">
+            <h2 className="text-sm font-semibold tracking-tight text-text-secondary">Rooms</h2>
+            <span className="rounded bg-surface px-[7px] py-[2px] text-[11px] text-text-tertiary">
               {rooms.length}
             </span>
           </div>
           <RoomFormDialog />
         </div>
         {rooms.length === 0 ? (
-          <p className="py-8 text-[13px] text-[#3f3f46]">No rooms configured. Add your first room to get started.</p>
+          <p className="py-8 text-[13px] text-text-tertiary">No rooms configured. Add your first room to get started.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {rooms.map((room) => (
@@ -156,22 +132,21 @@ export default function HomePage() {
 
       {/* ── Seasonal note ── */}
       {seasonalNote && (
-        <div className="mb-12 flex items-start gap-3.5 rounded-[10px] border border-[#18181b] bg-[#0d0d0f] px-5 py-4">
-          <span className="mt-px shrink-0 rounded bg-[#141416] px-2 py-[3px] text-[10px] uppercase tracking-wider text-[#52525b]">
+        <div className="mb-12 flex items-start gap-3.5 rounded-[10px] border border-border bg-panel px-5 py-4">
+          <span className="mt-px shrink-0 rounded bg-surface-raised px-2 py-[3px] text-[10px] uppercase tracking-wider text-text-dim">
             {seasonalNote.label}
           </span>
           <div>
-            <p className="text-[13px] font-[450] text-[#71717a]">{seasonalNote.title}</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-[#3f3f46]">{seasonalNote.description}</p>
+            <p className="text-[13px] font-[450] text-text-muted">{seasonalNote.title}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-text-tertiary">{seasonalNote.description}</p>
           </div>
         </div>
       )}
 
       {/* ── Below-fold panels (feature-flagged) ── */}
-      {(showAdvisories || showAskDoby) && (
+      {showAdvisories && (
         <div className="space-y-6">
-          {showAdvisories && <AdvisoriesPanel />}
-          {showAskDoby && <AskDoby />}
+          <AdvisoriesPanel />
         </div>
       )}
     </div>

@@ -40,16 +40,7 @@ function buildMonthOptions() {
 }
 const PERIOD_OPTIONS = buildMonthOptions();
 
-const providerMap: Record<string, string> = {
-  Electric: "BGE",
-  Gas: "BGE",
-  Water: "Howard County",
-  Sewer: "Howard County",
-  Trash: "Howard County",
-  Internet: "Provider",
-  Phone: "Provider",
-  Cable: "Provider",
-};
+import { utilityProviderMap } from "@/store/defaults";
 
 interface UtilityGroup {
   type: string;
@@ -84,7 +75,7 @@ function buildGroup(type: string, bills: { date: string; amount: number }[]): Ut
 
   return {
     type,
-    provider: providerMap[type] || "Provider",
+    provider: utilityProviderMap[type] || "Provider",
     latest,
     prev,
     avg,
@@ -151,20 +142,20 @@ export default function UtilitiesPage() {
               return (
                 <div
                   key={card.type}
-                  className="rounded-[10px] border border-[#18181b] bg-[#0d0d0f] px-6 py-5"
+                  className="rounded-[10px] border border-border bg-panel px-6 py-5"
                 >
                   {/* Header */}
                   <div className="mb-4 flex items-start justify-between">
                     <div>
-                      <p className="text-[15px] font-medium text-[#d4d4d8]">{card.type}</p>
-                      <p className="mt-0.5 font-mono text-[11px] text-[#3f3f46]">{card.provider}</p>
+                      <p className="text-[15px] font-medium text-text-primary">{card.type}</p>
+                      <p className="mt-0.5 font-mono text-[11px] text-text-tertiary">{card.provider}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono text-[22px] font-semibold text-[#a1a1aa]">
+                      <p className="font-mono text-[22px] font-semibold text-text-secondary">
                         {formatCurrency(card.latest)}
                       </p>
                       {(diffStr || card.avg > 0) && (
-                        <p className="mt-0.5 font-mono text-[11px] text-[#52525b]">
+                        <p className="mt-0.5 font-mono text-[11px] text-text-dim">
                           {[diffStr, card.avg > 0 && `${formatCurrency(card.avg)} avg`]
                             .filter(Boolean)
                             .join(" · ")}
@@ -183,7 +174,7 @@ export default function UtilitiesPage() {
                             className="w-full rounded-sm transition-all duration-300"
                             style={{
                               height: h,
-                              background: i === card.currentMonthIndex ? "#52525b" : v > 0 ? "#1a1a1d" : "#131316",
+                              background: i === card.currentMonthIndex ? "var(--d-text-dim)" : v > 0 ? "var(--d-surface-dim)" : "var(--d-surface-hover)",
                             }}
                           />
                         </div>
@@ -194,7 +185,7 @@ export default function UtilitiesPage() {
                   {/* Month labels */}
                   <div className="mt-1.5 flex gap-1">
                     {MONTHS.map((m) => (
-                      <span key={m} className="flex-1 text-center font-mono text-[9px] text-[#1e1e21]">
+                      <span key={m} className="flex-1 text-center font-mono text-[9px] text-text-ghost">
                         {m}
                       </span>
                     ))}

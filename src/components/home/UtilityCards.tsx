@@ -3,17 +3,7 @@
 import Link from "next/link";
 import { useDobyStore } from "@/store";
 import { formatCurrency } from "@/lib/formatters";
-
-const providerMap: Record<string, string> = {
-  Electric: "BGE",
-  Gas: "BGE",
-  Water: "Howard County",
-  Sewer: "Howard County",
-  Trash: "Howard County",
-  Internet: "Provider",
-  Phone: "Provider",
-  Cable: "Provider",
-};
+import { utilityProviderMap } from "@/store/defaults";
 
 function Sparkline({ data }: { data: number[] }) {
   const width = 120;
@@ -35,12 +25,12 @@ function Sparkline({ data }: { data: number[] }) {
       <polyline
         points={points}
         fill="none"
-        stroke="#52525b"
+        stroke="var(--d-text-dim)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={lastX} cy={lastY} r="2.5" fill="#52525b" />
+      <circle cx={lastX} cy={lastY} r="2.5" fill="var(--d-text-dim)" />
     </svg>
   );
 }
@@ -63,7 +53,7 @@ export default function UtilityCards() {
     const amounts = sorted.map((b) => b.amount);
     return {
       type,
-      provider: providerMap[type] || "Provider",
+      provider: utilityProviderMap[type] || "Provider",
       latest,
       data: amounts,
     };
@@ -71,20 +61,20 @@ export default function UtilityCards() {
 
   return (
     <div className="mb-12">
-      <h2 className="mb-4 text-sm font-semibold tracking-tight text-[#a1a1aa]">Utilities</h2>
+      <h2 className="mb-4 text-sm font-semibold tracking-tight text-text-secondary">Utilities</h2>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => (
           <Link
             key={card.type}
             href="/utilities"
-            className="rounded-[10px] border border-[#18181b] bg-[#0d0d0f] p-4 transition-all duration-150 hover:-translate-y-px hover:border-[#27272a] hover:bg-[#131316]"
+            className="rounded-[10px] border border-border bg-panel p-4 transition-all duration-150 hover:-translate-y-px hover:border-border-bright hover:bg-surface-hover"
           >
             <div className="mb-3 flex items-start justify-between">
               <div>
-                <p className="text-[13px] font-medium text-[#d4d4d8]">{card.type}</p>
-                <p className="mt-0.5 font-mono text-[11px] text-[#3f3f46]">{card.provider}</p>
+                <p className="text-[13px] font-medium text-text-primary">{card.type}</p>
+                <p className="mt-0.5 font-mono text-[11px] text-text-tertiary">{card.provider}</p>
               </div>
-              <span className="font-mono text-base font-semibold text-[#71717a]">
+              <span className="font-mono text-base font-semibold text-text-muted">
                 {formatCurrency(card.latest)}
               </span>
             </div>
@@ -92,7 +82,7 @@ export default function UtilityCards() {
               <Sparkline data={card.data} />
             ) : (
               <div className="flex h-8 items-end">
-                <div className="h-px w-full bg-[#27272a]" />
+                <div className="h-px w-full bg-border-bright" />
               </div>
             )}
           </Link>

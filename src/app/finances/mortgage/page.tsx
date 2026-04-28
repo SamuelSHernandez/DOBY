@@ -7,49 +7,23 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { useDobyStore } from "@/store";
-import { ArrowLeft } from "lucide-react";
+import { calculateMonthlyPayment, generateAmortizationSchedule } from "@/lib/mortgage";
+import BackButton from "@/components/shared/BackButton";
 
 const fmt = (v: number) => "$" + Math.round(v).toLocaleString();
 const fmtK = (v: number) => "$" + (v / 1000).toFixed(0) + "k";
 
 function amortize(principal: number, annualRate: number, years: number, extraMonthly = 0) {
-  const monthlyRate = annualRate / 100 / 12;
-  const n = years * 12;
-  const basePayment =
-    monthlyRate === 0
-      ? principal / n
-      : (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -n));
-
-  let balance = principal;
-  let totalInterest = 0;
-  let totalPaid = 0;
-  const schedule: {
-    month: number; year: number; balance: number; interest: number;
-    principal: number; totalInterest: number; totalPaid: number;
-  }[] = [];
-
-  for (let m = 1; m <= n && balance > 0.01; m++) {
-    const interest = balance * monthlyRate;
-    let principalPmt = basePayment - interest + extraMonthly;
-    if (principalPmt > balance) principalPmt = balance;
-    const actualPayment = interest + principalPmt;
-
-    balance -= principalPmt;
-    totalInterest += interest;
-    totalPaid += actualPayment;
-
-    schedule.push({
-      month: m,
-      year: +(m / 12).toFixed(2),
-      balance: Math.max(balance, 0),
-      interest,
-      principal: principalPmt,
-      totalInterest,
-      totalPaid,
-    });
-  }
-
-  return { schedule, basePayment, totalInterest, totalPaid, months: schedule.length };
+  const schedule = generateAmortizationSchedule(principal, annualRate, years, extraMonthly);
+  const basePayment = calculateMonthlyPayment(principal, annualRate, years);
+  const last = schedule[schedule.length - 1];
+  return {
+    schedule,
+    basePayment,
+    totalInterest: last?.totalInterest ?? 0,
+    totalPaid: schedule.reduce((sum, r) => sum + r.payment, 0),
+    months: schedule.length,
+  };
 }
 
 function Slider({ label, value, onChange, min, max, step, format }: {
@@ -213,14 +187,7 @@ export default function MortgagePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* Back link */}
-      <button
-        onClick={() => router.push("/finances")}
-        className="mb-4 flex min-h-[44px] items-center gap-1.5 text-xs text-azure hover:underline"
-      >
-        <ArrowLeft size={14} />
-        <span>Back to Finances</span>
-      </button>
+      <BackButton href="/finances" label="Back to Finances" />
 
       {/* Header */}
       <div className="mb-8">
@@ -270,8 +237,8 @@ export default function MortgagePage() {
         </p>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={breakdownData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} stackOffset="expand" barCategoryGap="15%">
-            <XAxis dataKey="year" tickFormatter={(v) => `${v}y`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" />
-            <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" width={40} />
+            <XAxis dataKey="year" tickFormatter={(v) => `${v}y`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" />
+            <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" width={40} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
@@ -313,8 +280,8 @@ export default function MortgagePage() {
                 <stop offset="95%" stopColor="#3083DC" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" />
-            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" width={50} />
+            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" />
+            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" width={50} />
             <Tooltip content={<ChartTooltip />} />
             <Area type="monotone" dataKey="standard" name="Standard" stroke="#95190C" strokeWidth={2} fill="url(#stdGrad)" dot={false} />
             <Area type="monotone" dataKey="accelerated" name="Accelerated" stroke="#3083DC" strokeWidth={2} fill="url(#accGrad)" dot={false} />
@@ -344,8 +311,8 @@ export default function MortgagePage() {
                 <stop offset="95%" stopColor="#3083DC" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" />
-            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "#3f3f46" }} stroke="#18181b" width={50} />
+            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" />
+            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" width={50} />
             <Tooltip content={<ChartTooltip />} />
             <Area type="monotone" dataKey="standard" name="Standard Interest" stroke="#95190C" strokeWidth={2} fill="url(#intStd)" dot={false} />
             <Area type="monotone" dataKey="accelerated" name="Accelerated Interest" stroke="#3083DC" strokeWidth={2} fill="url(#intAcc)" dot={false} />
@@ -367,7 +334,7 @@ export default function MortgagePage() {
           return (
             <div key={pct} className={`flex items-center py-3 ${pct < 100 ? "border-b border-border" : ""}`}>
               {/* Donut */}
-              <div className="mr-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#3083DC ${pct * 3.6}deg, #18181b 0deg)` }}>
+              <div className="mr-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#3083DC ${pct * 3.6}deg, var(--d-border) 0deg)` }}>
                 <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-surface text-[10px] font-semibold text-text-primary">
                   {pct}%
                 </div>

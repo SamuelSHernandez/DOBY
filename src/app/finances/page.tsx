@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef } from "react";
-import { useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useDobyStore } from "@/store";
+import { useShallow } from "zustand/react/shallow";
 import { calculateMonthlyPayment, calculateTotalMonthly, calculateHomeValue } from "@/lib/mortgage";
 import { monthsSinceStart } from "@/lib/dates";
 import { formatCurrency, formatSqFt, formatNumber } from "@/lib/formatters";
+import { fd as formData } from "@/lib/form";
 import PageHeader from "@/components/layout/PageHeader";
 import StatBox from "@/components/shared/StatBox";
 import CostBreakdown from "@/components/finances/CostBreakdown";
@@ -23,10 +23,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function FinancesPage() {
-  const mortgage = useDobyStore((s) => s.mortgage);
-  const property = useDobyStore((s) => s.property);
-  const appreciation = useDobyStore((s) => s.appreciation);
-  const rooms = useDobyStore((s) => s.rooms);
+  const { mortgage, property, appreciation, rooms } = useDobyStore(useShallow((s) => ({
+    mortgage: s.mortgage, property: s.property,
+    appreciation: s.appreciation, rooms: s.rooms,
+  })));
   const updateProperty = useDobyStore((s) => s.updateProperty);
   const updateMortgage = useDobyStore((s) => s.updateMortgage);
 
@@ -39,53 +39,47 @@ export default function FinancesPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const monthlyPI = calculateMonthlyPayment(mortgage.loanAmount, mortgage.interestRate, mortgage.termYears);
-  const totalMonthly = calculateTotalMonthly(monthlyPI, mortgage.propertyTaxAnnual, mortgage.homeInsuranceAnnual, mortgage.pmi);
-  const annualProjection = totalMonthly * 12;
-
-  // Appreciation calculation
-  const months = mortgage.startDate ? monthsSinceStart(mortgage.startDate) : 0;
-  const yearsOwned = months / 12;
-  const currentValue = property.purchasePrice > 0
-    ? calculateHomeValue(property.purchasePrice, appreciation.annualRate, yearsOwned)
-    : 0;
-  const appreciationGain = currentValue - property.purchasePrice;
-
-  const roomData = rooms.map((r) => ({
-    name: r.name,
-    sqft: formatSqFt(r.widthFt, r.widthIn, r.heightFt, r.heightIn),
-  }));
-  const totalSqFt = roomData.reduce((sum, r) => sum + r.sqft, 0);
-  const highestRoom = [...roomData].sort((a, b) => b.sqft - a.sqft)[0];
-  const highestPct = highestRoom && totalSqFt > 0 ? Math.round((highestRoom.sqft / totalSqFt) * 100) : 0;
+  const { totalMonthly, annualProjection, currentValue, appreciationGain, yearsOwned, totalSqFt, highestRoom, highestPct } = useMemo(() => {
+    const monthlyPI = calculateMonthlyPayment(mortgage.loanAmount, mortgage.interestRate, mortgage.termYears);
+    const _totalMonthly = calculateTotalMonthly(monthlyPI, mortgage.propertyTaxAnnual, mortgage.homeInsuranceAnnual, mortgage.pmi);
+    const months = mortgage.startDate ? monthsSinceStart(mortgage.startDate) : 0;
+    const yearsOwned = months / 12;
+    const _currentValue = property.purchasePrice > 0
+      ? calculateHomeValue(property.purchasePrice, appreciation.annualRate, yearsOwned) : 0;
+    const roomData = rooms.map((r) => ({ name: r.name, sqft: formatSqFt(r.widthFt, r.widthIn, r.heightFt, r.heightIn) }));
+    const _totalSqFt = roomData.reduce((sum, r) => sum + r.sqft, 0);
+    const _highestRoom = [...roomData].sort((a, b) => b.sqft - a.sqft)[0];
+    return {
+      totalMonthly: _totalMonthly,
+      annualProjection: _totalMonthly * 12,
+      currentValue: _currentValue,
+      appreciationGain: _currentValue - property.purchasePrice,
+      yearsOwned,
+      totalSqFt: _totalSqFt,
+      highestRoom: _highestRoom,
+      highestPct: _highestRoom && _totalSqFt > 0 ? Math.round((_highestRoom.sqft / _totalSqFt) * 100) : 0,
+    };
+  }, [mortgage, property, appreciation, rooms]);
 
   function saveProperty(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const f = formData(new FormData(e.currentTarget));
     updateProperty({
-      purchasePrice: Number(fd.get("purchasePrice")) || 0,
-      closingCosts: Number(fd.get("closingCosts")) || 0,
-      address: (fd.get("address") as string) || "",
-      squareFeet: Number(fd.get("squareFeet")) || 0,
-      yearBuilt: Number(fd.get("yearBuilt")) || 0,
-      lotSize: (fd.get("lotSize") as string) || "",
-      hoaMonthly: Number(fd.get("hoaMonthly")) || 0,
+      purchasePrice: f.num("purchasePrice"), closingCosts: f.num("closingCosts"),
+      address: f.str("address"), squareFeet: f.num("squareFeet"),
+      yearBuilt: f.num("yearBuilt"), lotSize: f.str("lotSize"), hoaMonthly: f.num("hoaMonthly"),
     });
     toast.success("Property details saved");
   }
 
   function saveMortgage(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const f = formData(new FormData(e.currentTarget));
     updateMortgage({
-      loanAmount: Number(fd.get("loanAmount")) || 0,
-      downPayment: Number(fd.get("downPayment")) || 0,
-      interestRate: Number(fd.get("interestRate")) || 0,
-      termYears: Number(fd.get("termYears")) || 30,
-      propertyTaxAnnual: Number(fd.get("propertyTaxAnnual")) || 0,
-      homeInsuranceAnnual: Number(fd.get("homeInsuranceAnnual")) || 0,
-      pmi: Number(fd.get("pmi")) || 0,
-      loanProgram: (fd.get("loanProgram") as string) || "",
+      loanAmount: f.num("loanAmount"), downPayment: f.num("downPayment"),
+      interestRate: f.num("interestRate"), termYears: f.num("termYears") || 30,
+      propertyTaxAnnual: f.num("propertyTaxAnnual"), homeInsuranceAnnual: f.num("homeInsuranceAnnual"),
+      pmi: f.num("pmi"), loanProgram: f.str("loanProgram"),
     });
     toast.success("Mortgage details saved");
   }
@@ -198,11 +192,9 @@ export default function FinancesPage() {
               <div className="mt-2">
                 {property.homeImage ? (
                   <div className="relative">
-                    <Image
+                    <img
                       src={property.homeImage}
                       alt="Home"
-                      width={400}
-                      height={250}
                       className="h-40 w-full border border-border object-cover"
                     />
                     <button
