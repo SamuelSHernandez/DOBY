@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDobyStore } from "@/store";
 import { systemCategories } from "@/store/defaults";
 import PageHeader from "@/components/layout/PageHeader";
@@ -13,13 +13,13 @@ export default function SystemsPage() {
   const deleteSystem = useDobyStore((s) => s.deleteSystem);
   const [editingSystem, setEditingSystem] = useState<HomeSystem | null>(null);
 
-  const grouped = systemCategories.map((cat) => ({
-    category: cat,
-    systems: systems.filter((s) => s.category === cat.key),
-  }));
-
-  const knownKeys = new Set(systemCategories.map((c) => c.key));
-  const uncategorized = systems.filter((s) => !knownKeys.has(s.category));
+  const { grouped, uncategorized } = useMemo(() => {
+    const knownKeys = new Set(systemCategories.map((c) => c.key));
+    return {
+      grouped: systemCategories.map((cat) => ({ category: cat, systems: systems.filter((s) => s.category === cat.key) })),
+      uncategorized: systems.filter((s) => !knownKeys.has(s.category)),
+    };
+  }, [systems]);
 
   return (
     <div>

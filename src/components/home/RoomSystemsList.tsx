@@ -1,7 +1,8 @@
 "use client";
 
 import type { HomeSystem } from "@/store/types";
-import { yearsFractional, daysUntil } from "@/lib/dates";
+import { daysUntil } from "@/lib/dates";
+import { getSystemLifecyclePct } from "@/lib/system-health";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -13,9 +14,9 @@ function getStatus(sys: HomeSystem): { label: string; dotColor: string; detail: 
     return { label: "IDLE", dotColor: "bg-text-tertiary", detail: "no install date" };
   }
 
-  const age = yearsFractional(sys.installDate);
+  const pct = getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears);
   const life = sys.estimatedLifeYears;
-  const pct = (age / life) * 100;
+  const age = pct * life / 100;
   const ageStr = `${Math.round(age)}yr of ${life}yr`;
 
   // Service info

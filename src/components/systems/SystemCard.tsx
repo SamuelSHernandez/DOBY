@@ -3,7 +3,7 @@
 import type { HomeSystem } from "@/store/types";
 import { formatDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
-import { yearsFractional } from "@/lib/dates";
+import { getSystemLifecyclePct, getHealthVariant } from "@/lib/system-health";
 import LifecycleBar from "@/components/shared/LifecycleBar";
 import StatusBadge from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
@@ -14,23 +14,16 @@ interface Props {
 }
 
 export default function SystemCard({ system, onClick }: Props) {
-  const age = system.installDate ? yearsFractional(system.installDate) : 0;
-  const lifePct = system.estimatedLifeYears > 0
-    ? Math.min(100, (age / system.estimatedLifeYears) * 100)
-    : 0;
-  const remaining = Math.max(0, system.estimatedLifeYears - age);
+  const lifePct = getSystemLifecyclePct(system.installDate, system.estimatedLifeYears);
+  const remaining = Math.max(0, system.estimatedLifeYears - (lifePct * system.estimatedLifeYears / 100));
 
+  const statusVariant = getHealthVariant(lifePct);
   const borderColor =
-    lifePct > 80
-      ? "border-l-oxblood"
-      : lifePct > 50
-        ? "border-l-saffron"
-        : "border-l-sea-green";
-
-  const statusVariant =
-    lifePct > 80 ? "critical" : lifePct > 50 ? "caution" : "nominal";
+    statusVariant === "critical" ? "border-l-oxblood"
+      : statusVariant === "caution" ? "border-l-saffron"
+      : "border-l-sea-green";
   const statusLabel =
-    lifePct > 80 ? "Critical" : lifePct > 50 ? "Aging" : "Nominal";
+    statusVariant === "critical" ? "Critical" : statusVariant === "caution" ? "Aging" : "Nominal";
 
   return (
     <button

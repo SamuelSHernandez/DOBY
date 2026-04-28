@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { HomeSystem, SystemCategory } from "@/store/types";
-import { yearsFractional } from "@/lib/dates";
 import { formatDate } from "@/lib/dates";
+import { getSystemLifecyclePct } from "@/lib/system-health";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import LifecycleBar from "@/components/shared/LifecycleBar";
@@ -24,7 +24,7 @@ function getCategoryStatus(systems: HomeSystem[]): { label: string; color: strin
 
   for (const sys of systems) {
     if (sys.installDate && sys.estimatedLifeYears > 0) {
-      const pct = (yearsFractional(sys.installDate) / sys.estimatedLifeYears) * 100;
+      const pct = getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears);
       if (pct > worstPct) worstPct = pct;
       if (pct > 50) hasIssue = true;
     }
@@ -42,7 +42,7 @@ function getSummaryLine(systems: HomeSystem[]): string {
   for (const sys of systems) {
     if (sys.condition === "poor") return `${sys.name} needs attention`;
     if (sys.installDate && sys.estimatedLifeYears > 0) {
-      const pct = (yearsFractional(sys.installDate) / sys.estimatedLifeYears) * 100;
+      const pct = getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears);
       if (pct > 80) return `${sys.name} aging`;
     }
   }
@@ -90,12 +90,7 @@ export default function SystemCategoryCard({ category, systems, onEdit, onDelete
       {expanded && systems.length > 0 && (
         <div className="border-t border-border">
           {systems.map((sys) => {
-            const age = sys.installDate && sys.estimatedLifeYears > 0
-              ? yearsFractional(sys.installDate)
-              : 0;
-            const lifePct = sys.estimatedLifeYears > 0
-              ? Math.min(100, Math.round((age / sys.estimatedLifeYears) * 100))
-              : 0;
+            const lifePct = Math.round(getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears));
 
             return (
               <div key={sys.id} className="border-b border-border/50 px-4 py-3 last:border-b-0">

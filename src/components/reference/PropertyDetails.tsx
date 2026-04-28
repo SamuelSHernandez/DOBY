@@ -1,12 +1,13 @@
 "use client";
 
 import { useDobyStore } from "@/store";
+import { useShallow } from "zustand/react/shallow";
 import { formatNumber } from "@/lib/formatters";
 
 export default function PropertyDetails() {
-  const property = useDobyStore((s) => s.property);
-  const rooms = useDobyStore((s) => s.rooms);
-  const systems = useDobyStore((s) => s.systems);
+  const { property, rooms, systems } = useDobyStore(useShallow((s) => ({
+    property: s.property, rooms: s.rooms, systems: s.systems,
+  })));
 
   const details = [
     { label: "Address", value: property.address || "—" },

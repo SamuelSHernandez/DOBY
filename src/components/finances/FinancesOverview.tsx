@@ -1,6 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import { useDobyStore } from "@/store";
+import { useShallow } from "zustand/react/shallow";
 import {
   calculateMonthlyPayment,
   calculateTotalMonthly,
@@ -13,38 +15,25 @@ import { formatCurrency } from "@/lib/formatters";
 import StatBox from "@/components/shared/StatBox";
 
 export default function FinancesOverview() {
-  const property = useDobyStore((s) => s.property);
-  const mortgage = useDobyStore((s) => s.mortgage);
-  const appreciation = useDobyStore((s) => s.appreciation);
-  const expenses = useDobyStore((s) => s.expenses);
+  const { property, mortgage, appreciation, expenses } = useDobyStore(useShallow((s) => ({
+    property: s.property, mortgage: s.mortgage,
+    appreciation: s.appreciation, expenses: s.expenses,
+  })));
 
-  const monthlyPI = calculateMonthlyPayment(
-    mortgage.loanAmount,
-    mortgage.interestRate,
-    mortgage.termYears
-  );
-  const totalMonthly = calculateTotalMonthly(
-    monthlyPI,
-    mortgage.propertyTaxAnnual,
-    mortgage.homeInsuranceAnnual,
-    mortgage.pmi
-  );
-
-  const months = monthsSinceStart(mortgage.startDate);
-  const years = months / 12;
-  const schedule = generateAmortizationSchedule(
-    mortgage.loanAmount,
-    mortgage.interestRate,
-    mortgage.termYears
-  );
-  const equity = calculateEquity(property.purchasePrice, mortgage.loanAmount, schedule, months);
-  const currentValue = calculateHomeValue(
-    property.purchasePrice,
-    appreciation.annualRate,
-    years
-  );
-
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const { totalMonthly, months, schedule, equity, currentValue, totalExpenses } = useMemo(() => {
+    const monthlyPI = calculateMonthlyPayment(mortgage.loanAmount, mortgage.interestRate, mortgage.termYears);
+    const _totalMonthly = calculateTotalMonthly(monthlyPI, mortgage.propertyTaxAnnual, mortgage.homeInsuranceAnnual, mortgage.pmi);
+    const _months = monthsSinceStart(mortgage.startDate);
+    const _schedule = generateAmortizationSchedule(mortgage.loanAmount, mortgage.interestRate, mortgage.termYears);
+    return {
+      totalMonthly: _totalMonthly,
+      months: _months,
+      schedule: _schedule,
+      equity: calculateEquity(property.purchasePrice, mortgage.loanAmount, _schedule, _months),
+      currentValue: calculateHomeValue(property.purchasePrice, appreciation.annualRate, _months / 12),
+      totalExpenses: expenses.reduce((sum, e) => sum + e.amount, 0),
+    };
+  }, [mortgage, property, appreciation, expenses]);
 
   return (
     <div>

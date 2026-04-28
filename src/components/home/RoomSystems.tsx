@@ -3,7 +3,7 @@
 import { useDobyStore } from "@/store";
 import StatusBadge from "@/components/shared/StatusBadge";
 import { X } from "lucide-react";
-import { yearsFractional } from "@/lib/dates";
+import { getSystemLifecyclePct, getHealthVariant } from "@/lib/system-health";
 
 interface Props {
   roomId: string;
@@ -22,11 +22,7 @@ export default function RoomSystems({ roomId, systemIds }: Props) {
 
   function getVariant(sys: typeof allSystems[0]) {
     if (!sys.installDate) return "neutral" as const;
-    const age = yearsFractional(sys.installDate);
-    const pct = (age / sys.estimatedLifeYears) * 100;
-    if (pct > 80) return "critical" as const;
-    if (pct > 50) return "caution" as const;
-    return "nominal" as const;
+    return getHealthVariant(getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears));
   }
 
   if (roomSpecific.length === 0) {
