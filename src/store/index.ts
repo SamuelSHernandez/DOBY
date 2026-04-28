@@ -16,388 +16,215 @@ import type {
   DocumentRef,
   CustomTask,
   FeatureFlags,
-  FloorPlan,
   InventoryItem,
   WishlistItem,
   RoomMaterials,
   RoomPhoto,
   MaintenanceEntry,
+  Theme,
 } from "./types";
 import { defaultState } from "./defaults";
 
+// ─── Helpers ───
+
+function updateInArray<T extends { id: string }>(arr: T[], id: string, data: Partial<T>): T[] {
+  return arr.map((item) => (item.id === id ? { ...item, ...data } : item));
+}
+
+type SetFn = (fn: (s: DobyState) => Partial<DobyState>) => void;
+
+function crudActions<T extends { id: string }>(key: keyof DobyState, set: SetFn) {
+  const get = (s: DobyState) => s[key] as unknown as T[];
+  return {
+    add: (item: T) => set((s) => ({ [key]: [...get(s), item] })),
+    update: (id: string, data: Partial<T>) => set((s) => ({ [key]: updateInArray(get(s), id, data) })),
+    delete: (id: string) => set((s) => ({ [key]: get(s).filter((x) => x.id !== id) })),
+  };
+}
+
+function roomSubActions<T extends { id: string }>(field: keyof Room, set: SetFn) {
+  const get = (r: Room) => (r[field] as unknown as T[]) || [];
+  return {
+    add: (roomId: string, item: T) =>
+      set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, [field]: [...get(r), item] } : r) })),
+    delete: (roomId: string, itemId: string) =>
+      set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, [field]: get(r).filter((x) => x.id !== itemId) } : r) })),
+  };
+}
+
+// ─── Action Types ───
+
 interface DobyActions {
-  // Property
   updateProperty: (data: Partial<Property>) => void;
   updateGlobalMaterials: (data: Partial<RoomMaterials>) => void;
   updateMortgage: (data: Partial<Mortgage>) => void;
   updateAppreciation: (data: Partial<Appreciation>) => void;
   updateInsurance: (data: Partial<InsurancePolicy>) => void;
-
-  // Rooms
   addRoom: (room: Room) => void;
   updateRoom: (id: string, data: Partial<Room>) => void;
   deleteRoom: (id: string) => void;
-
-  // Inventory
   addInventoryItem: (roomId: string, item: InventoryItem) => void;
   updateInventoryItem: (roomId: string, itemId: string, data: Partial<InventoryItem>) => void;
   deleteInventoryItem: (roomId: string, itemId: string) => void;
-
-  // Wishlist
   addWishlistItem: (roomId: string, item: WishlistItem) => void;
   updateWishlistItem: (roomId: string, itemId: string, data: Partial<WishlistItem>) => void;
   deleteWishlistItem: (roomId: string, itemId: string) => void;
   purchaseWishlistItem: (roomId: string, itemId: string) => void;
-
-  // Room extras
   updateRoomNotes: (roomId: string, notes: string) => void;
   addRoomPhoto: (roomId: string, photo: RoomPhoto) => void;
   deleteRoomPhoto: (roomId: string, photoId: string) => void;
   addMaintenanceEntry: (roomId: string, entry: MaintenanceEntry) => void;
   deleteMaintenanceEntry: (roomId: string, entryId: string) => void;
-
-  // Room materials
   updateRoomMaterials: (roomId: string, materials: Partial<RoomMaterials>) => void;
-
-  // Room systems
   linkSystem: (roomId: string, systemId: string) => void;
   unlinkSystem: (roomId: string, systemId: string) => void;
-
-  // Systems
   addSystem: (system: HomeSystem) => void;
   updateSystem: (id: string, data: Partial<HomeSystem>) => void;
   deleteSystem: (id: string) => void;
-
-  // Expenses
   addExpense: (expense: Expense) => void;
   updateExpense: (id: string, data: Partial<Expense>) => void;
   deleteExpense: (id: string) => void;
-
-  // Utilities
   addUtility: (bill: UtilityBill) => void;
   updateUtility: (id: string, data: Partial<UtilityBill>) => void;
   deleteUtility: (id: string) => void;
-
-  // Projects
   addProject: (project: Project) => void;
   updateProject: (id: string, data: Partial<Project>) => void;
   deleteProject: (id: string) => void;
-
-  // Seasonal tasks
   toggleSeasonalTask: (key: string) => void;
-
-  // Contractors
   addContractor: (contractor: Contractor) => void;
   updateContractor: (id: string, data: Partial<Contractor>) => void;
   deleteContractor: (id: string) => void;
-
-  // Documents
   addDocument: (doc: DocumentRef) => void;
   updateDocument: (id: string, data: Partial<DocumentRef>) => void;
   deleteDocument: (id: string) => void;
-
-  // Emergency
   updateEmergencyInfo: (data: Partial<EmergencyInfo>) => void;
-
-  // Custom tasks
   addCustomTask: (task: CustomTask) => void;
   updateCustomTask: (id: string, data: Partial<CustomTask>) => void;
   deleteCustomTask: (id: string) => void;
   completeCustomTask: (id: string) => void;
-
-  // System service completion
   completeSystemService: (systemId: string) => void;
-
-  // Floor plans
-  saveFloorPlan: (plan: FloorPlan) => void;
-  deleteFloorPlan: (id: string) => void;
-
-  // Feature flags
   updateFeatureFlags: (flags: Partial<FeatureFlags>) => void;
-
-  // Meta
+  setTheme: (theme: Theme) => void;
   isInitialized: () => boolean;
   resetStore: () => void;
 }
 
 export type DobyStore = DobyState & DobyActions;
 
-function updateItemInArray<T extends { id: string }>(
-  arr: T[],
-  id: string,
-  data: Partial<T>
-): T[] {
-  return arr.map((item) => (item.id === id ? { ...item, ...data } : item));
-}
-
 export const useDobyStore = create<DobyStore>()(
   persist(
-    (set, get) => ({
-      ...defaultState,
+    (set, get) => {
+      const expenses = crudActions<Expense>("expenses", set);
+      const utilities = crudActions<UtilityBill>("utilities", set);
+      const projects = crudActions<Project>("projects", set);
+      const contractors = crudActions<Contractor>("contractors", set);
+      const documents = crudActions<DocumentRef>("documents", set);
+      const customTasks = crudActions<CustomTask>("customTasks", set);
+      const inventory = roomSubActions<InventoryItem>("inventory", set);
+      const wishlist = roomSubActions<WishlistItem>("wishlist", set);
+      const photos = roomSubActions<RoomPhoto>("photos", set);
+      const maintenance = roomSubActions<MaintenanceEntry>("maintenanceLog", set);
 
-      // Property
-      updateProperty: (data) =>
-        set((s) => ({ property: { ...s.property, ...data } })),
-      updateGlobalMaterials: (data) =>
-        set((s) => ({ globalMaterials: { ...s.globalMaterials, ...data } })),
-      updateMortgage: (data) =>
-        set((s) => ({ mortgage: { ...s.mortgage, ...data } })),
-      updateAppreciation: (data) =>
-        set((s) => ({ appreciation: { ...s.appreciation, ...data } })),
-      updateInsurance: (data) =>
-        set((s) => ({ insurance: { ...s.insurance, ...data } })),
+      return {
+        ...defaultState,
 
-      // Rooms
-      addRoom: (room) => set((s) => ({ rooms: [...s.rooms, room] })),
-      updateRoom: (id, data) =>
-        set((s) => ({ rooms: updateItemInArray(s.rooms, id, data) })),
-      deleteRoom: (id) =>
-        set((s) => ({ rooms: s.rooms.filter((r) => r.id !== id) })),
+        // Property (single-object updates)
+        updateProperty: (data) => set((s) => ({ property: { ...s.property, ...data } })),
+        updateGlobalMaterials: (data) => set((s) => ({ globalMaterials: { ...s.globalMaterials, ...data } })),
+        updateMortgage: (data) => set((s) => ({ mortgage: { ...s.mortgage, ...data } })),
+        updateAppreciation: (data) => set((s) => ({ appreciation: { ...s.appreciation, ...data } })),
+        updateInsurance: (data) => set((s) => ({ insurance: { ...s.insurance, ...data } })),
+        updateEmergencyInfo: (data) => set((s) => ({ emergencyInfo: { ...s.emergencyInfo, ...data } })),
 
-      // Inventory
-      addInventoryItem: (roomId, item) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, inventory: [...r.inventory, item] }
-              : r
-          ),
-        })),
-      updateInventoryItem: (roomId, itemId, data) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, inventory: updateItemInArray(r.inventory, itemId, data) }
-              : r
-          ),
-        })),
-      deleteInventoryItem: (roomId, itemId) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, inventory: r.inventory.filter((i) => i.id !== itemId) }
-              : r
-          ),
-        })),
+        // Rooms (custom delete cleans up system links)
+        addRoom: (room) => set((s) => ({ rooms: [...s.rooms, room] })),
+        updateRoom: (id, data) => set((s) => ({ rooms: updateInArray(s.rooms, id, data) })),
+        deleteRoom: (id) => set((s) => ({ rooms: s.rooms.filter((r) => r.id !== id) })),
 
-      // Wishlist
-      addWishlistItem: (roomId, item) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, wishlist: [...r.wishlist, item] }
-              : r
-          ),
-        })),
-      updateWishlistItem: (roomId, itemId, data) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, wishlist: updateItemInArray(r.wishlist, itemId, data) }
-              : r
-          ),
-        })),
-      deleteWishlistItem: (roomId, itemId) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, wishlist: r.wishlist.filter((i) => i.id !== itemId) }
-              : r
-          ),
-        })),
-      purchaseWishlistItem: (roomId, itemId) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) => {
-            if (r.id !== roomId) return r;
-            const item = r.wishlist.find((i) => i.id === itemId);
-            if (!item) return r;
-            const inventoryItem: InventoryItem = {
-              id: item.id,
-              name: item.name,
-              cost: item.price,
-              purchaseDate: new Date().toISOString().slice(0, 10),
-              condition: "excellent" as const,
-              notes: item.notes,
-              imageUrl: item.imageUrl,
-              vendor: item.vendor,
-              receiptUrl: item.url || undefined,
-              purchaseSource: item.vendor || undefined,
-            };
-            return {
-              ...r,
-              wishlist: r.wishlist.filter((i) => i.id !== itemId),
-              inventory: [...r.inventory, inventoryItem],
-            };
-          }),
-        })),
-
-      // Room extras
-      updateRoomNotes: (roomId, notes) =>
-        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, notes } : r) })),
-      addRoomPhoto: (roomId, photo) =>
-        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, photos: [...(r.photos || []), photo] } : r) })),
-      deleteRoomPhoto: (roomId, photoId) =>
-        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, photos: (r.photos || []).filter((p) => p.id !== photoId) } : r) })),
-      addMaintenanceEntry: (roomId, entry) =>
-        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, maintenanceLog: [...(r.maintenanceLog || []), entry] } : r) })),
-      deleteMaintenanceEntry: (roomId, entryId) =>
-        set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, maintenanceLog: (r.maintenanceLog || []).filter((e) => e.id !== entryId) } : r) })),
-
-      // Room materials
-      updateRoomMaterials: (roomId, materials) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, materials: { ...r.materials, ...materials } }
-              : r
-          ),
-        })),
-
-      // Room systems
-      linkSystem: (roomId, systemId) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId && !r.systemIds.includes(systemId)
-              ? { ...r, systemIds: [...r.systemIds, systemId] }
-              : r
-          ),
-        })),
-      unlinkSystem: (roomId, systemId) =>
-        set((s) => ({
-          rooms: s.rooms.map((r) =>
-            r.id === roomId
-              ? { ...r, systemIds: r.systemIds.filter((id) => id !== systemId) }
-              : r
-          ),
-        })),
-
-      // Systems
-      addSystem: (system) =>
-        set((s) => ({ systems: [...s.systems, system] })),
-      updateSystem: (id, data) =>
-        set((s) => ({ systems: updateItemInArray(s.systems, id, data) })),
-      deleteSystem: (id) =>
-        set((s) => ({
-          systems: s.systems.filter((sys) => sys.id !== id),
-          rooms: s.rooms.map((r) => ({
-            ...r,
-            systemIds: r.systemIds.filter((sid) => sid !== id),
+        // Room sub-collections
+        addInventoryItem: inventory.add,
+        deleteInventoryItem: inventory.delete,
+        updateInventoryItem: (roomId, itemId, data) =>
+          set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, inventory: updateInArray(r.inventory, itemId, data) } : r) })),
+        addWishlistItem: wishlist.add,
+        deleteWishlistItem: wishlist.delete,
+        updateWishlistItem: (roomId, itemId, data) =>
+          set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, wishlist: updateInArray(r.wishlist, itemId, data) } : r) })),
+        purchaseWishlistItem: (roomId, itemId) =>
+          set((s) => ({
+            rooms: s.rooms.map((r) => {
+              if (r.id !== roomId) return r;
+              const item = r.wishlist.find((i) => i.id === itemId);
+              if (!item) return r;
+              const inv: InventoryItem = {
+                id: item.id, name: item.name, cost: item.price,
+                purchaseDate: new Date().toISOString().slice(0, 10),
+                condition: "excellent", notes: item.notes, imageUrl: item.imageUrl,
+                vendor: item.vendor, receiptUrl: item.url || undefined,
+                purchaseSource: item.vendor || undefined,
+              };
+              return { ...r, wishlist: r.wishlist.filter((i) => i.id !== itemId), inventory: [...r.inventory, inv] };
+            }),
           })),
+        addRoomPhoto: photos.add,
+        deleteRoomPhoto: photos.delete,
+        addMaintenanceEntry: maintenance.add,
+        deleteMaintenanceEntry: maintenance.delete,
+        updateRoomNotes: (roomId, notes) =>
+          set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, notes } : r) })),
+        updateRoomMaterials: (roomId, materials) =>
+          set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, materials: { ...r.materials, ...materials } } : r) })),
+        linkSystem: (roomId, systemId) =>
+          set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId && !r.systemIds.includes(systemId) ? { ...r, systemIds: [...r.systemIds, systemId] } : r) })),
+        unlinkSystem: (roomId, systemId) =>
+          set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, systemIds: r.systemIds.filter((id) => id !== systemId) } : r) })),
+
+        // Systems (custom delete cleans up room links)
+        addSystem: (system) => set((s) => ({ systems: [...s.systems, system] })),
+        updateSystem: (id, data) => set((s) => ({ systems: updateInArray(s.systems, id, data) })),
+        deleteSystem: (id) => set((s) => ({
+          systems: s.systems.filter((sys) => sys.id !== id),
+          rooms: s.rooms.map((r) => ({ ...r, systemIds: r.systemIds.filter((sid) => sid !== id) })),
         })),
 
-      // Expenses
-      addExpense: (expense) =>
-        set((s) => ({ expenses: [...s.expenses, expense] })),
-      updateExpense: (id, data) =>
-        set((s) => ({ expenses: updateItemInArray(s.expenses, id, data) })),
-      deleteExpense: (id) =>
-        set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) })),
+        // Standard CRUD collections
+        addExpense: expenses.add, updateExpense: expenses.update, deleteExpense: expenses.delete,
+        addUtility: utilities.add, updateUtility: utilities.update, deleteUtility: utilities.delete,
+        addProject: projects.add, updateProject: projects.update, deleteProject: projects.delete,
+        addContractor: contractors.add, updateContractor: contractors.update, deleteContractor: contractors.delete,
+        addDocument: documents.add, updateDocument: documents.update, deleteDocument: documents.delete,
+        addCustomTask: customTasks.add, updateCustomTask: customTasks.update, deleteCustomTask: customTasks.delete,
 
-      // Utilities
-      addUtility: (bill) =>
-        set((s) => ({ utilities: [...s.utilities, bill] })),
-      updateUtility: (id, data) =>
-        set((s) => ({ utilities: updateItemInArray(s.utilities, id, data) })),
-      deleteUtility: (id) =>
-        set((s) => ({ utilities: s.utilities.filter((u) => u.id !== id) })),
+        // Seasonal tasks
+        toggleSeasonalTask: (key) => set((s) => ({ seasonalTasks: { ...s.seasonalTasks, [key]: !s.seasonalTasks[key] } })),
 
-      // Projects
-      addProject: (project) =>
-        set((s) => ({ projects: [...s.projects, project] })),
-      updateProject: (id, data) =>
-        set((s) => ({ projects: updateItemInArray(s.projects, id, data) })),
-      deleteProject: (id) =>
-        set((s) => ({ projects: s.projects.filter((p) => p.id !== id) })),
+        // Custom task completion
+        completeCustomTask: (id) =>
+          set((s) => ({ customTasks: s.customTasks.map((t) => t.id === id ? { ...t, completed: true, completedDate: new Date().toISOString().slice(0, 10) } : t) })),
 
-      // Seasonal tasks
-      toggleSeasonalTask: (key) =>
-        set((s) => ({
-          seasonalTasks: {
-            ...s.seasonalTasks,
-            [key]: !s.seasonalTasks[key],
-          },
-        })),
-
-      // Contractors
-      addContractor: (contractor) =>
-        set((s) => ({ contractors: [...s.contractors, contractor] })),
-      updateContractor: (id, data) =>
-        set((s) => ({
-          contractors: updateItemInArray(s.contractors, id, data),
-        })),
-      deleteContractor: (id) =>
-        set((s) => ({
-          contractors: s.contractors.filter((c) => c.id !== id),
-        })),
-
-      // Documents
-      addDocument: (doc) =>
-        set((s) => ({ documents: [...s.documents, doc] })),
-      updateDocument: (id, data) =>
-        set((s) => ({ documents: updateItemInArray(s.documents, id, data) })),
-      deleteDocument: (id) =>
-        set((s) => ({ documents: s.documents.filter((d) => d.id !== id) })),
-
-      // Emergency
-      updateEmergencyInfo: (data) =>
-        set((s) => ({ emergencyInfo: { ...s.emergencyInfo, ...data } })),
-
-      // Custom tasks
-      addCustomTask: (task) =>
-        set((s) => ({ customTasks: [...s.customTasks, task] })),
-      updateCustomTask: (id, data) =>
-        set((s) => ({ customTasks: updateItemInArray(s.customTasks, id, data) })),
-      deleteCustomTask: (id) =>
-        set((s) => ({ customTasks: s.customTasks.filter((t) => t.id !== id) })),
-      completeCustomTask: (id) =>
-        set((s) => ({
-          customTasks: s.customTasks.map((t) =>
-            t.id === id ? { ...t, completed: true, completedDate: new Date().toISOString().slice(0, 10) } : t
-          ),
-        })),
-
-      // System service completion — update lastServiceDate to today, push nextServiceDate forward
-      completeSystemService: (systemId) =>
-        set((s) => ({
-          systems: s.systems.map((sys) => {
-            if (sys.id !== systemId) return sys;
-            const today = new Date().toISOString().slice(0, 10);
-            // Estimate next service: if we know the interval from last dates, use that; otherwise 6 months
-            let nextDate = "";
-            if (sys.nextServiceDate && sys.lastServiceDate) {
-              const lastMs = new Date(sys.lastServiceDate).getTime();
-              const nextMs = new Date(sys.nextServiceDate).getTime();
-              const intervalMs = nextMs - lastMs;
-              if (intervalMs > 0) {
-                nextDate = new Date(Date.now() + intervalMs).toISOString().slice(0, 10);
+        // System service completion
+        completeSystemService: (systemId) =>
+          set((s) => ({
+            systems: s.systems.map((sys) => {
+              if (sys.id !== systemId) return sys;
+              const today = new Date().toISOString().slice(0, 10);
+              let nextDate = "";
+              if (sys.nextServiceDate && sys.lastServiceDate) {
+                const intervalMs = new Date(sys.nextServiceDate).getTime() - new Date(sys.lastServiceDate).getTime();
+                if (intervalMs > 0) nextDate = new Date(Date.now() + intervalMs).toISOString().slice(0, 10);
               }
-            }
-            if (!nextDate) {
-              nextDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-            }
-            return { ...sys, lastServiceDate: today, nextServiceDate: nextDate };
-          }),
-        })),
+              if (!nextDate) nextDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+              return { ...sys, lastServiceDate: today, nextServiceDate: nextDate };
+            }),
+          })),
 
-      // Floor plans
-      saveFloorPlan: (plan) =>
-        set((s) => ({ floorPlans: { ...s.floorPlans, [plan.id]: plan } })),
-      deleteFloorPlan: (id) =>
-        set((s) => {
-          const { [id]: _, ...rest } = s.floorPlans;
-          return { floorPlans: rest };
-        }),
-
-      // Feature flags
-      updateFeatureFlags: (flags) =>
-        set((s) => ({ featureFlags: { ...s.featureFlags, ...flags } })),
-
-      // Meta
-      isInitialized: () => get().property.address !== "",
-      resetStore: () => set(defaultState),
-    }),
-    {
-      name: "doby-store",
-    }
+        // Settings
+        updateFeatureFlags: (flags) => set((s) => ({ featureFlags: { ...s.featureFlags, ...flags } })),
+        setTheme: (theme) => set({ theme }),
+        isInitialized: () => get().property.address !== "",
+        resetStore: () => set(defaultState),
+      };
+    },
+    { name: "doby-store" }
   )
 );

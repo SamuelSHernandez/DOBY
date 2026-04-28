@@ -3,7 +3,7 @@
 import { useDobyStore } from "@/store";
 import PageHeader from "@/components/layout/PageHeader";
 import { toast } from "sonner";
-import type { FeatureFlags } from "@/store/types";
+import type { FeatureFlags, Theme } from "@/store/types";
 
 interface FeatureToggle {
   key: keyof FeatureFlags;
@@ -14,11 +14,8 @@ interface FeatureToggle {
 
 const features: FeatureToggle[] = [
   // Home
-  { key: "temperature", label: "Temperature", description: "Show temperature readings on room cards and detail", group: "Home" },
-  { key: "humidity", label: "Humidity", description: "Show humidity readings on room detail", group: "Home" },
   { key: "alertBanner", label: "Alert Banner", description: "Critical system alerts at top of Home dashboard", group: "Home" },
   { key: "advisories", label: "Advisories", description: "System lifecycle warnings and seasonal advisories", group: "Home" },
-  { key: "askDoby", label: "Ask DOBY", description: "Natural language query input on Home dashboard", group: "Home" },
 
   // Finances
   { key: "expenseTracker", label: "Expense Tracker", description: "Log and categorize home expenses", group: "Finances" },
@@ -41,9 +38,6 @@ const features: FeatureToggle[] = [
   { key: "wishlist", label: "Wishlist", description: "Room wishlist with priority levels", group: "Room Detail" },
   { key: "materials", label: "Materials & Finishes", description: "Paint colors, flooring, tile per room", group: "Room Detail" },
 
-  // Floor Plans
-  { key: "floorPlanEditor", label: "Room Floor Plans", description: "Per-room floor plan editor with walls, doors, and windows", group: "Floor Plans" },
-  { key: "homeFloorPlan", label: "Home Floor Plan", description: "Whole-home blueprint assembly view with color-coded rooms", group: "Floor Plans" },
 ];
 
 const groups = [...new Set(features.map((f) => f.group))];
@@ -51,6 +45,8 @@ const groups = [...new Set(features.map((f) => f.group))];
 export default function AdminPage() {
   const flags = useDobyStore((s) => s.featureFlags);
   const updateFlags = useDobyStore((s) => s.updateFeatureFlags);
+  const theme = useDobyStore((s) => s.theme);
+  const setTheme = useDobyStore((s) => s.setTheme);
   const resetStore = useDobyStore((s) => s.resetStore);
 
   function toggle(key: keyof FeatureFlags) {
@@ -81,17 +77,35 @@ export default function AdminPage() {
         subtitle={`${enabledCount} / ${features.length} features enabled`}
       />
 
+      {/* ── Theme ── */}
+      <div className="mb-8">
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-primary">Theme</h2>
+        <div className="flex gap-2">
+          {(["dark", "light"] as Theme[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => { setTheme(t); toast.success(`${t} mode`); }}
+              className={`border px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider transition-colors ${
+                theme === t
+                  ? "border-azure bg-azure-dim text-azure"
+                  : "border-border text-text-secondary hover:border-border-bright"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mb-6 flex flex-wrap gap-2">
         <button
           onClick={() => {
             updateFlags({
-              temperature: false, humidity: false, askDoby: true,
               advisories: true, alertBanner: true, seasonalChecklist: true,
               projectTracker: true, utilityTracker: true, expenseTracker: true,
               insurancePanel: false, contractorDirectory: true, documentIndex: true,
               emergencyPanel: true, wishlist: true, materials: false,
               mortgageCalculator: true, costBreakdown: true, roomCostAttribution: true,
-              floorPlanEditor: true, homeFloorPlan: true,
             });
             toast.success("Recommended settings applied");
           }}

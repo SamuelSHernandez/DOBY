@@ -76,9 +76,6 @@ export const defaultMaterials: RoomMaterials = {
 };
 
 export const defaultFeatureFlags: FeatureFlags = {
-  temperature: false,
-  humidity: false,
-  askDoby: true,
   advisories: true,
   alertBanner: true,
   seasonalChecklist: true,
@@ -94,8 +91,6 @@ export const defaultFeatureFlags: FeatureFlags = {
   mortgageCalculator: true,
   costBreakdown: true,
   roomCostAttribution: true,
-  floorPlanEditor: true,
-  homeFloorPlan: true,
 };
 
 export const defaultState: DobyState = {
@@ -114,8 +109,8 @@ export const defaultState: DobyState = {
   contractors: [],
   documents: [],
   customTasks: [],
-  floorPlans: {},
   featureFlags: defaultFeatureFlags,
+  theme: "dark" as const,
 };
 
 // ─── Presets ───
@@ -262,3 +257,24 @@ export const documentCategories = [
   "Contract",
   "Other",
 ] as const;
+
+export const utilityProviderMap: Record<string, string> = {
+  Electric: "BGE",
+  Gas: "BGE",
+  Water: "Howard County",
+  Sewer: "Howard County",
+  Trash: "Howard County",
+  Internet: "Provider",
+  Phone: "Provider",
+  Cable: "Provider",
+};
+
+export const systemCategoryColors: Record<string, string> = {
+  hvac: "#3083DC",
+  electrical: "#FE9000",
+  plumbing: "#058C42",
+  security: "#95190C",
+  network: "#8B5CF6",
+  appliances: "var(--d-text-muted)",
+  lighting: "#EAB308",
+};
