@@ -25,7 +25,7 @@ export default function AllItems() {
     }
   }
 
-  const sorted = items.sort((a, b) => a.name.localeCompare(b.name));
+  const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div>

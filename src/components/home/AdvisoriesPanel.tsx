@@ -1,7 +1,9 @@
 "use client";
 
 import { useDobyStore } from "@/store";
-import { yearsFractional, formatRelative, daysUntil } from "@/lib/dates";
+import { formatRelative, daysUntil } from "@/lib/dates";
+import { getSystemLifecyclePct } from "@/lib/system-health";
+import { getSeasonalNote } from "@/lib/seasonal";
 import { cn } from "@/lib/utils";
 
 interface Advisory {
@@ -18,13 +20,12 @@ export default function AdvisoriesPanel() {
 
   for (const sys of systems) {
     if (sys.installDate && sys.estimatedLifeYears > 0) {
-      const age = yearsFractional(sys.installDate);
-      const pct = (age / sys.estimatedLifeYears) * 100;
+      const pct = getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears);
 
       if (pct > 80) {
         advisories.push({
           title: `${sys.name} approaching end of life`,
-          description: `${sys.estimatedLifeYears}-year unit installed ${Math.round(age)} years ago. Budget $${sys.estimatedReplaceCost.toLocaleString()} for replacement.`,
+          description: `${sys.estimatedLifeYears}-year unit at ${Math.round(pct)}% lifecycle. Budget $${sys.estimatedReplaceCost.toLocaleString()} for replacement.`,
           timeContext: sys.lastServiceDate ? formatRelative(sys.lastServiceDate) : "",
           severity: pct > 90 ? "critical" : "caution",
         });
@@ -46,22 +47,13 @@ export default function AdvisoriesPanel() {
   }
 
   // Seasonal advisory
-  const month = new Date().getMonth();
-  if (month >= 2 && month <= 4) {
-    advisories.push({
-      title: "Spring maintenance window",
-      description: "Gutter cleaning, exterior inspection, and AC pre-season check recommended before May.",
-      timeContext: "Seasonal",
-      severity: "info",
-    });
-  } else if (month >= 8 && month <= 10) {
-    advisories.push({
-      title: "Fall maintenance window",
-      description: "Furnace service, gutter cleaning, and weatherization recommended before November.",
-      timeContext: "Seasonal",
-      severity: "info",
-    });
-  }
+  const seasonal = getSeasonalNote();
+  advisories.push({
+    title: seasonal.title,
+    description: seasonal.description,
+    timeContext: seasonal.label,
+    severity: "info",
+  });
 
   if (advisories.length === 0) {
     return (
@@ -75,7 +67,7 @@ export default function AdvisoriesPanel() {
     );
   }
 
-  const sorted = advisories.sort((a, b) => {
+  const sorted = [...advisories].sort((a, b) => {
     const order = { critical: 0, caution: 1, info: 2 };
     return order[a.severity] - order[b.severity];
   });

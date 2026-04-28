@@ -1,7 +1,8 @@
 "use client";
 
 import { useDobyStore } from "@/store";
-import { daysUntil, yearsFractional } from "@/lib/dates";
+import { daysUntil } from "@/lib/dates";
+import { getSystemLifecyclePct } from "@/lib/system-health";
 
 interface Alert {
   title: string;
@@ -29,8 +30,7 @@ export default function AlertBanner() {
 
     // Critical lifecycle
     if (sys.installDate && sys.estimatedLifeYears > 0) {
-      const age = yearsFractional(sys.installDate);
-      const pct = (age / sys.estimatedLifeYears) * 100;
+      const pct = getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears);
       if (pct > 90) {
         alerts.push({
           title: `${sys.name} critically low`,
@@ -57,7 +57,7 @@ export default function AlertBanner() {
   if (alerts.length === 0) return null;
 
   // Show worst alert
-  const worst = alerts.sort((a, b) => b.daysOverdue - a.daysOverdue)[0];
+  const worst = [...alerts].sort((a, b) => b.daysOverdue - a.daysOverdue)[0];
 
   return (
     <div className="mb-6 flex items-start gap-4 border border-oxblood/30 bg-oxblood/5 p-5">

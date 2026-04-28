@@ -55,7 +55,7 @@ export default function UpcomingMaintenance() {
     }
   }
 
-  const sorted = tasks.sort((a, b) => a.daysAway - b.daysAway).slice(0, 6);
+  const sorted = [...tasks].sort((a, b) => a.daysAway - b.daysAway).slice(0, 6);
 
   if (sorted.length === 0) {
     return (

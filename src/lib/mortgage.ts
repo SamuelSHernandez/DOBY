@@ -14,7 +14,8 @@ export function calculateMonthlyPayment(
   annualRate: number,
   termYears: number
 ): number {
-  if (principal <= 0 || annualRate <= 0 || termYears <= 0) return 0;
+  if (principal <= 0 || annualRate < 0 || termYears <= 0) return 0;
+  if (annualRate === 0) return principal / (termYears * 12);
   const monthlyRate = annualRate / 100 / 12;
   const totalMonths = termYears * 12;
   return (
@@ -36,30 +37,34 @@ export function calculateTotalMonthly(
 export function generateAmortizationSchedule(
   principal: number,
   annualRate: number,
-  termYears: number
+  termYears: number,
+  extraMonthly = 0
 ): AmortizationRow[] {
-  if (principal <= 0 || annualRate <= 0 || termYears <= 0) return [];
+  if (principal <= 0 || annualRate < 0 || termYears <= 0) return [];
 
   const monthlyRate = annualRate / 100 / 12;
   const totalMonths = termYears * 12;
-  const monthlyPayment = calculateMonthlyPayment(principal, annualRate, termYears);
+  const basePayment = calculateMonthlyPayment(principal, annualRate, termYears);
   const schedule: AmortizationRow[] = [];
 
   let balance = principal;
   let totalInterest = 0;
   let totalPrincipal = 0;
 
-  for (let month = 1; month <= totalMonths; month++) {
+  for (let month = 1; month <= totalMonths && balance > 0.01; month++) {
     const interest = balance * monthlyRate;
-    const principalPaid = Math.min(monthlyPayment - interest, balance);
+    let principalPaid = basePayment - interest + extraMonthly;
+    if (principalPaid > balance) principalPaid = balance;
+    const payment = interest + principalPaid;
+
     balance = Math.max(0, balance - principalPaid);
     totalInterest += interest;
     totalPrincipal += principalPaid;
 
     schedule.push({
       month,
-      year: Math.ceil(month / 12),
-      payment: monthlyPayment,
+      year: +(month / 12).toFixed(2),
+      payment,
       principal: principalPaid,
       interest,
       balance,

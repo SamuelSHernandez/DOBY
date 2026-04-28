@@ -12,8 +12,8 @@ describe("calculateMonthlyPayment", () => {
     expect(calculateMonthlyPayment(0, 6.5, 30)).toBe(0);
   });
 
-  it("returns 0 for zero rate", () => {
-    expect(calculateMonthlyPayment(300000, 0, 30)).toBe(0);
+  it("returns principal/months for zero rate", () => {
+    expect(calculateMonthlyPayment(300000, 0, 30)).toBeCloseTo(300000 / 360, 2);
   });
 
   it("calculates correctly for typical mortgage", () => {
@@ -71,6 +71,36 @@ describe("calculateHomeValue", () => {
   it("calculates compound appreciation", () => {
     const value = calculateHomeValue(300000, 3.5, 1);
     expect(Math.round(value)).toBe(310500);
+  });
+});
+
+describe("generateAmortizationSchedule with extra payments", () => {
+  it("pays off faster with extra monthly", () => {
+    const standard = generateAmortizationSchedule(300000, 6.5, 30, 0);
+    const extra = generateAmortizationSchedule(300000, 6.5, 30, 500);
+    expect(extra.length).toBeLessThan(standard.length);
+  });
+
+  it("saves interest with extra payments", () => {
+    const standard = generateAmortizationSchedule(300000, 6.5, 30, 0);
+    const extra = generateAmortizationSchedule(300000, 6.5, 30, 500);
+    expect(extra[extra.length - 1].totalInterest).toBeLessThan(standard[standard.length - 1].totalInterest);
+  });
+
+  it("balance reaches zero with extra payments", () => {
+    const schedule = generateAmortizationSchedule(300000, 6.5, 30, 500);
+    expect(schedule[schedule.length - 1].balance).toBeLessThan(1);
+  });
+
+  it("total principal still equals loan amount with extra payments", () => {
+    const schedule = generateAmortizationSchedule(300000, 6.5, 30, 300);
+    expect(Math.round(schedule[schedule.length - 1].totalPrincipal)).toBe(300000);
+  });
+
+  it("handles 0% rate with extra payments", () => {
+    const schedule = generateAmortizationSchedule(120000, 0, 30, 100);
+    expect(schedule.length).toBeLessThan(360);
+    expect(schedule[schedule.length - 1].balance).toBeLessThan(1);
   });
 });
 
