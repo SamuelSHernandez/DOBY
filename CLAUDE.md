@@ -6,32 +6,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev          # Start dev server (http://localhost:3000)
-npm run build        # Production build (also runs TypeScript checks)
+npm run build        # Static export to out/ (includes TypeScript checks)
 npm run lint         # ESLint
-npm run start        # Serve production build
+npm run test         # Run vitest test suite
 ```
 
-No test runner is configured yet. Use `npm run build` as the primary correctness check (includes TypeScript type checking).
+Build produces a fully static `out/` directory (~3.7MB). No Node.js runtime needed in production — serve with nginx, caddy, or any static file server.
 
 ## Architecture
 
-Doby is a local-first home management SPA built with Next.js 16 (App Router), React 19, TypeScript, and Tailwind CSS 4. All data persists in localStorage via Zustand — no backend, no auth, no API routes.
+Doby is a local-first home management SPA built with Next.js 16 (App Router, static export), React 19, TypeScript, and Tailwind CSS 4. All data persists in localStorage via Zustand — no backend, no auth, no API routes, no server-side rendering.
 
 ### State Management
 - **Single Zustand store** at `src/store/index.ts` with `persist` middleware (localStorage key: `doby-store`)
 - Types in `src/store/types.ts`, defaults/presets in `src/store/defaults.ts`
 - Store has CRUD actions for: rooms, inventory, wishlist, systems, expenses, utilities, projects, contractors, documents
+- Theme (`dark`/`light`) persisted in store, applied via `.light` class on `<html>`
 - All components access store via `useDobyStore` hook
 
 ### Routing
-- `/` redirects to `/home`
+- `/` — Client-side redirect to `/home`
 - `/home` — Room cards grid with floor tabs
-- `/home/[roomId]` — Room detail with Inventory/Wishlist/Materials/Systems tabs
+- `/room?roomId=xxx` — Room detail with Inventory/Wishlist/Materials/Systems tabs
 - `/systems` — Systems dashboard with lifecycle tracking
 - `/finances` — Sub-tabs: Overview/Mortgage/Expenses/Insurance/Property
-- `/upkeep` — Sub-tabs: Seasonal/Projects/Utilities
+- `/finances/mortgage` — Mortgage acceleration calculator
+- `/upkeep` — Sub-tabs: Seasonal/Projects
+- `/utilities` — Utility bill tracking with bar charts
 - `/reference` — Sub-tabs: Emergency/Contractors/Documents
-- `/setup` — Onboarding wizard (stub)
+- `/floorplan` — Whole-home floor plan assembly
+- `/floorplan/edit?roomId=xxx` — Per-room floor plan editor
+- `/admin` — Feature flags and theme toggle
+
+Routes using query params (`/room`, `/floorplan/edit`) wrap `useSearchParams()` in Suspense boundaries (required for static export).
 
 ### Navigation
 - Desktop (≥md): Fixed left sidebar 200px (`Sidebar.tsx`)
@@ -46,14 +53,17 @@ Doby is a local-first home management SPA built with Next.js 16 (App Router), Re
 
 ## Design System
 
-Dark-only, utilitarian aesthetic. IBM Plex Mono exclusively.
+Dark/light theme, utilitarian aesthetic. IBM Plex Mono exclusively.
 
 - **Square corners everywhere** (all radius vars = 0px)
 - **No shadows, gradients, or blurs** — flat rendering only
-- **Colors:** carbon (#1C1D21), panel (#222327), surface (#28292e), azure (#3083DC), sea-green (#058C42), saffron (#FE9000), oxblood (#95190C)
+- **Colors defined as CSS variables** (`--d-*`) in `globals.css` with `:root` (dark) and `.light` overrides
+- Semantic tokens: `carbon`, `panel`, `surface`, `surface-hover`, `surface-raised`, `surface-dim`, `border`, `border-bright`, `text-primary`, `text-secondary`, `text-tertiary`, `text-muted`, `text-dim`, `text-ghost`
+- Accent colors: `azure` (#3083DC), `sea-green` (#058C42), `saffron` (#FE9000), `oxblood` (#95190C)
 - **Typography:** Uppercase for labels/headers, weight 400 body / 600 data / 700 stats
 - Tailwind theme defined via `@theme inline` in `globals.css` (Tailwind v4 pattern, no tailwind.config.ts)
 - shadcn/ui components in `src/components/ui/` — customized via CSS variable mappings in globals.css
+- **Never use hardcoded hex colors** in components — always use semantic Tailwind classes (`text-text-primary`, `bg-panel`, etc.) or `var(--d-*)` for inline styles
 
 ### Component Conventions
 - `"use client"` on all interactive components (store access, state, event handlers)
@@ -77,3 +87,5 @@ Dark-only, utilitarian aesthetic. IBM Plex Mono exclusively.
 ## Gotchas
 - Zod v4 is installed — import from `zod/v4` not `zod`. The `@hookform/resolvers` zodResolver has type inference issues with `z.coerce`; prefer plain interfaces with `useForm<T>` for form types.
 - No separate `tailwind.config.ts` — all theme tokens live in `globals.css` via `@theme inline` (Tailwind v4).
+- Static export (`output: "export"`) means no API routes, no server-side rendering, no `next/image` optimization. Use `<img>` tags directly.
+- Pages using `useSearchParams()` must wrap the consuming component in `<Suspense>` for static export compatibility.

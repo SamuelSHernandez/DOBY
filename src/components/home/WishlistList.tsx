@@ -5,6 +5,7 @@ import { useDobyStore } from "@/store";
 import type { WishlistItem, Priority } from "@/store/types";
 import { toast } from "sonner";
 import { generateId } from "@/lib/constants";
+import { fd as formData } from "@/lib/form";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,12 +105,8 @@ export default function WishlistList({ roomId, items }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [filterVendor, setFilterVendor] = useState("");
-  const [fetching, setFetching] = useState(false);
-
   // Refs for auto-fill from URL
   const vendorRef = useRef<HTMLInputElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
-  const fetchedImageUrl = useRef<string>("");
 
   function toggleSort(key: SortKey) {
     if (sortBy === key) {
@@ -120,42 +117,22 @@ export default function WishlistList({ roomId, items }: Props) {
     }
   }
 
-  // Extract vendor instantly from URL, then try OG tags in background for image/title
+  // Extract vendor instantly from URL
   function onUrlChange(url: string) {
     if (!url) return;
-    // Instant vendor detection
     const vendor = vendorFromUrl(url);
     if (vendor && vendorRef.current && !vendorRef.current.value) {
       vendorRef.current.value = vendor;
-    }
-    // Background fetch for image + title (best effort)
-    if (!fetching) {
-      setFetching(true);
-      fetch(`/api/og?url=${encodeURIComponent(url)}`)
-        .then((r) => r.ok ? r.json() : null)
-        .then((data) => {
-          if (!data) return;
-          if (data.image) fetchedImageUrl.current = data.image;
-          if (data.title && nameRef.current && !nameRef.current.value) {
-            nameRef.current.value = data.title;
-          }
-        })
-        .catch(() => {})
-        .finally(() => setFetching(false));
     }
   }
 
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const f = formData(new FormData(e.currentTarget));
     const data = {
-      name: fd.get("name") as string,
-      price: Number(fd.get("price")) || 0,
-      url: (fd.get("url") as string) || "",
-      priority: (fd.get("priority") as Priority) || "medium",
-      notes: (fd.get("notes") as string) || "",
-      imageUrl: fetchedImageUrl.current || editing?.imageUrl || "",
-      vendor: (fd.get("vendor") as string) || "",
+      name: f.str("name"), price: f.num("price"), url: f.url("url"),
+      priority: (f.str("priority") as Priority) || "medium",
+      notes: f.str("notes"), imageUrl: editing?.imageUrl || "", vendor: f.str("vendor"),
     };
 
     if (editing) {
@@ -223,7 +200,7 @@ export default function WishlistList({ roomId, items }: Props) {
         )}
 
         <div className="ml-auto">
-          <Button size="sm" className="gap-1.5" onClick={() => { setEditing(null); fetchedImageUrl.current = ""; setOpen(true); }}>
+          <Button size="sm" className="gap-1.5" onClick={() => { setEditing(null); setOpen(true); }}>
             <Plus size={14} />
             <span>Add</span>
           </Button>
@@ -314,7 +291,7 @@ export default function WishlistList({ roomId, items }: Props) {
             </div>
             <div>
               <Label className="text-[10px] uppercase tracking-wider text-text-tertiary">Name</Label>
-              <Input ref={nameRef} name="name" defaultValue={editing?.name ?? ""} required className="mt-1 border-border bg-surface text-text-primary" />
+              <Input name="name" defaultValue={editing?.name ?? ""} required className="mt-1 border-border bg-surface text-text-primary" />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>

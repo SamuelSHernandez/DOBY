@@ -1,10 +1,12 @@
 "use client";
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDobyStore } from "@/store";
+import { useShallow } from "zustand/react/shallow";
 import { formatDimensions, formatSqFt, formatSqFtDisplay, formatCurrency } from "@/lib/formatters";
-import { yearsFractional, formatDate } from "@/lib/dates";
+import { formatDate } from "@/lib/dates";
+import { getSystemLifecyclePct, getHealthVariant } from "@/lib/system-health";
 import { generateId } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,21 +18,20 @@ import WishlistList from "@/components/home/WishlistList";
 import RoomFormDialog from "@/components/home/RoomFormDialog";
 import { useFeature } from "@/lib/useFeature";
 import Link from "next/link";
-import { ArrowLeft, Pencil, PenTool, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import BackButton from "@/components/shared/BackButton";
 import { toast } from "sonner";
 
-export default function RoomDetailPage({
-  params,
-}: {
-  params: Promise<{ roomId: string }>;
-}) {
-  const { roomId } = use(params);
+function RoomDetailContent() {
+  const searchParams = useSearchParams();
+  const roomId = searchParams.get("roomId") || "";
   const router = useRouter();
-  const room = useDobyStore((s) => s.rooms.find((r) => r.id === roomId));
-  const allSystems = useDobyStore((s) => s.systems);
-  const allRooms = useDobyStore((s) => s.rooms);
+  const { room, allSystems, allRooms } = useDobyStore(useShallow((s) => ({
+    room: s.rooms.find((r) => r.id === roomId),
+    allSystems: s.systems,
+    allRooms: s.rooms,
+  })));
   const showWishlist = useFeature("wishlist");
-  const showFloorPlan = useFeature("floorPlanEditor");
   const updateRoomNotes = useDobyStore((s) => s.updateRoomNotes);
   const addMaintenanceEntry = useDobyStore((s) => s.addMaintenanceEntry);
   const deleteMaintenanceEntry = useDobyStore((s) => s.deleteMaintenanceEntry);
@@ -51,37 +52,33 @@ export default function RoomDetailPage({
     );
   }
 
-  const linkedSystems = allSystems.filter((s) => room.systemIds.includes(s.id));
-  const wholeHomeSystems = allSystems.filter((s) => s.scope === "whole-home");
-  const roomSpecificLinked = linkedSystems.filter((s) => s.scope !== "whole-home");
-  const sqft = formatSqFt(room.widthFt, room.widthIn, room.heightFt, room.heightIn);
-  const sqftDisplay = formatSqFtDisplay(room.widthFt, room.widthIn, room.heightFt, room.heightIn);
-  const hasDimensions = room.widthFt > 0 || room.widthIn > 0;
-
-  // Room health
-  const worstPct = linkedSystems.reduce((worst, sys) => {
-    if (!sys.installDate || sys.estimatedLifeYears <= 0) return worst;
-    return Math.max(worst, (yearsFractional(sys.installDate) / sys.estimatedLifeYears) * 100);
-  }, 0);
-  const healthVariant = worstPct > 80 ? "critical" : worstPct > 50 ? "caution" : "nominal";
-  const healthLabel = worstPct > 80 ? "Critical" : worstPct > 50 ? "Aging" : "Nominal";
-
-  // Cost share
-  const totalSqFt = allRooms.reduce((sum, r) => sum + formatSqFt(r.widthFt, r.widthIn, r.heightFt, r.heightIn), 0);
-  const costSharePct = totalSqFt > 0 ? Math.round((sqft / totalSqFt) * 100) : 0;
-
-  // Cost intelligence
-  const inventorySpent = room.inventory.reduce((s, i) => s + (i.cost || 0), 0);
-  const wishlistTotal = room.wishlist.reduce((s, i) => s + (i.price || 0), 0);
-  const hasCostData = inventorySpent > 0 || wishlistTotal > 0;
+  const derived = useMemo(() => {
+    const linkedSystems = allSystems.filter((s) => room.systemIds.includes(s.id));
+    const wholeHomeSystems = allSystems.filter((s) => s.scope === "whole-home");
+    const roomSpecificLinked = linkedSystems.filter((s) => s.scope !== "whole-home");
+    const sqft = formatSqFt(room.widthFt, room.widthIn, room.heightFt, room.heightIn);
+    const totalSqFt = allRooms.reduce((sum, r) => sum + formatSqFt(r.widthFt, r.widthIn, r.heightFt, r.heightIn), 0);
+    const worstPct = linkedSystems.reduce((worst, sys) =>
+      Math.max(worst, getSystemLifecyclePct(sys.installDate, sys.estimatedLifeYears)), 0);
+    const healthVariant = getHealthVariant(worstPct);
+    const inventorySpent = room.inventory.reduce((s, i) => s + (i.cost || 0), 0);
+    const wishlistTotal = room.wishlist.reduce((s, i) => s + (i.price || 0), 0);
+    return {
+      linkedSystems, wholeHomeSystems, roomSpecificLinked, sqft,
+      sqftDisplay: formatSqFtDisplay(room.widthFt, room.widthIn, room.heightFt, room.heightIn),
+      hasDimensions: room.widthFt > 0 || room.widthIn > 0,
+      healthVariant,
+      healthLabel: healthVariant === "critical" ? "Critical" : healthVariant === "caution" ? "Aging" : "Nominal",
+      costSharePct: totalSqFt > 0 ? Math.round((sqft / totalSqFt) * 100) : 0,
+      inventorySpent, wishlistTotal,
+      hasCostData: inventorySpent > 0 || wishlistTotal > 0,
+    };
+  }, [room, allSystems, allRooms]);
+  const { linkedSystems, wholeHomeSystems, roomSpecificLinked, sqft, sqftDisplay, hasDimensions, healthVariant, healthLabel, costSharePct, inventorySpent, wishlistTotal, hasCostData } = derived;
 
   return (
     <div>
-      <button onClick={() => router.push("/home")}
-        className="mb-4 flex min-h-[44px] items-center gap-1.5 text-xs text-azure hover:underline">
-        <ArrowLeft size={14} />
-        <span>Back to rooms</span>
-      </button>
+      <BackButton href="/home" label="Back to rooms" />
 
       {/* Header */}
       <div className="mb-4 flex items-start justify-between">
@@ -220,12 +217,18 @@ export default function RoomDetailPage({
             className="border-border bg-surface text-text-primary text-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter" && photoInput.trim()) {
-                addRoomPhoto(roomId, {
-                  id: generateId(),
-                  url: photoInput.trim(),
-                  date: new Date().toISOString().slice(0, 10),
-                });
-                setPhotoInput("");
+                try {
+                  const u = new URL(photoInput.trim());
+                  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error();
+                  addRoomPhoto(roomId, {
+                    id: generateId(),
+                    url: u.href,
+                    date: new Date().toISOString().slice(0, 10),
+                  });
+                  setPhotoInput("");
+                } catch {
+                  toast.error("Invalid URL — must start with http:// or https://");
+                }
               }
             }}
           />
@@ -247,16 +250,14 @@ export default function RoomDetailPage({
         )}
       </div>
 
-      {/* Floor Plan link */}
-      {showFloorPlan && (
-        <div className="mb-6">
-          <Link href={`/floorplan/${roomId}`}
-            className="flex items-center gap-2 border border-border px-4 py-3 text-xs text-text-secondary hover:bg-surface hover:text-text-primary transition-colors">
-            <PenTool size={14} />
-            <span>Edit Floor Plan</span>
-          </Link>
-        </div>
-      )}
     </div>
+  );
+}
+
+export default function RoomDetailPage() {
+  return (
+    <Suspense>
+      <RoomDetailContent />
+    </Suspense>
   );
 }
