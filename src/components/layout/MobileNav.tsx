@@ -9,11 +9,8 @@ import {
   Wallet,
   Wrench,
   BookOpen,
-  PenTool,
-  LogOut,
   MoreHorizontal,
 } from "lucide-react";
-import { logout } from "@/app/auth/actions";
 import { cn } from "@/lib/utils";
 import { useDobyStore } from "@/store";
 import { useState } from "react";
@@ -27,8 +24,7 @@ const NAV_ITEMS: { label: string; href: string | null; icon: React.ElementType }
 ];
 
 const ALL_MORE_ITEMS: { label: string; href: string; icon: React.ElementType; featureKeys?: string[] }[] = [
-  { label: "Floor Plan", href: "/floorplan", icon: PenTool, featureKeys: ["floorPlanEditor", "homeFloorPlan"] },
-  { label: "Upkeep", href: "/upkeep", icon: Wrench },
+{ label: "Upkeep", href: "/upkeep", icon: Wrench },
   { label: "Reference", href: "/reference", icon: BookOpen },
   { label: "Admin", href: "/admin", icon: Settings2 },
 ];
@@ -77,14 +73,6 @@ export default function MobileNav() {
                 </Link>
               );
             })}
-            <div className="border-t border-border" />
-            <button
-              onClick={() => { setMoreOpen(false); logout(); }}
-              className="flex min-h-[44px] w-full items-center gap-3 px-5 text-sm text-text-tertiary hover:bg-surface"
-            >
-              <LogOut size={16} strokeWidth={2} />
-              <span>Sign Out</span>
-            </button>
           </div>
         </div>
       )}

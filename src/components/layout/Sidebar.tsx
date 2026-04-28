@@ -9,11 +9,8 @@ import {
   Wallet,
   Wrench,
   BookOpen,
-  PenTool,
   SlidersHorizontal,
-  LogOut,
 } from "lucide-react";
-import { logout } from "@/app/auth/actions";
 import { cn } from "@/lib/utils";
 import { useDobyStore } from "@/store";
 
@@ -24,16 +21,14 @@ const iconMap: Record<string, React.ElementType> = {
   wallet: Wallet,
   wrench: Wrench,
   "book-open": BookOpen,
-  "pen-tool": PenTool,
-  "sliders-horizontal": SlidersHorizontal,
+"sliders-horizontal": SlidersHorizontal,
 };
 
 const NAV_ITEMS: { label: string; href: string; icon: string; featureKeys?: string[] }[] = [
   { label: "Home", href: "/home", icon: "layout-dashboard" },
   { label: "Systems", href: "/systems", icon: "settings-2" },
   { label: "Utilities", href: "/utilities", icon: "zap" },
-  { label: "Floor Plan", href: "/floorplan", icon: "pen-tool", featureKeys: ["floorPlanEditor", "homeFloorPlan"] },
-  { label: "Finances", href: "/finances", icon: "wallet" },
+{ label: "Finances", href: "/finances", icon: "wallet" },
   { label: "Upkeep", href: "/upkeep", icon: "wrench" },
   { label: "Reference", href: "/reference", icon: "book-open" },
   { label: "Admin", href: "/admin", icon: "sliders-horizontal" },
@@ -85,15 +80,6 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-border px-2 py-3">
-        <button
-          onClick={() => logout()}
-          className="flex w-full items-center gap-3 px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-text-tertiary transition-colors hover:text-text-primary"
-        >
-          <LogOut size={16} strokeWidth={2} />
-          Sign Out
-        </button>
-      </div>
     </aside>
   );
 }
