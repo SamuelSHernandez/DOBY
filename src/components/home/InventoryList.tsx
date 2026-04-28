@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDobyStore } from "@/store";
 import type { InventoryItem, Condition } from "@/store/types";
 import { generateId } from "@/lib/constants";
+import { fd as formData } from "@/lib/form";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,15 +55,12 @@ export default function InventoryList({ roomId, items }: Props) {
 
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const f = formData(new FormData(e.currentTarget));
     const data = {
-      name: fd.get("name") as string,
-      cost: Number(fd.get("cost")) || 0,
-      purchaseDate: (fd.get("purchaseDate") as string) || "",
-      condition: (fd.get("condition") as Condition) || "unknown",
-      notes: (fd.get("notes") as string) || "",
-      purchaseSource: (fd.get("purchaseSource") as string) || "",
-      warrantyExpires: (fd.get("warrantyExpires") as string) || "",
+      name: f.str("name"), cost: f.num("cost"), purchaseDate: f.str("purchaseDate"),
+      condition: (f.str("condition") as Condition) || "unknown",
+      notes: f.str("notes"), purchaseSource: f.str("purchaseSource"),
+      warrantyExpires: f.str("warrantyExpires"),
     };
 
     if (editing) {

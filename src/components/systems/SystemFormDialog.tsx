@@ -14,8 +14,52 @@ import {
 import { useDobyStore } from "@/store";
 import { systemPresets, systemCategories } from "@/store/defaults";
 import { generateId } from "@/lib/constants";
+import { fd as formData } from "@/lib/form";
 import type { HomeSystem, Condition, SystemCategory } from "@/store/types";
 import { Plus } from "lucide-react";
+
+interface FieldConfig {
+  name: string;
+  label: string;
+  type?: string;
+  step?: string;
+  placeholder?: string;
+}
+
+const categoryFields: Record<string, { title: string; fields: FieldConfig[] }> = {
+  hvac: { title: "HVAC Details", fields: [
+    { name: "filterSize", label: "Filter Size", placeholder: "e.g. 16x25x1" },
+    { name: "filterChangeIntervalMonths", label: "Filter Change (Months)", type: "number" },
+  ]},
+  network: { title: "Service Details", fields: [
+    { name: "provider", label: "Provider", placeholder: "e.g. Comcast, Verizon" },
+    { name: "monthlyPayment", label: "Monthly Payment", type: "number", step: "0.01" },
+    { name: "accountNumber", label: "Account Number" },
+  ]},
+  security: { title: "Security Service", fields: [
+    { name: "provider", label: "Provider", placeholder: "e.g. ADT, Ring" },
+    { name: "monthlyPayment", label: "Monthly Payment", type: "number", step: "0.01" },
+    { name: "accountNumber", label: "Account Number" },
+  ]},
+  appliances: { title: "Appliance Details", fields: [
+    { name: "brand", label: "Brand", placeholder: "e.g. Samsung, LG" },
+    { name: "modelNumber", label: "Model Number" },
+    { name: "serialNumber", label: "Serial Number" },
+  ]},
+  electrical: { title: "Electrical Details", fields: [
+    { name: "amperage", label: "Amperage", type: "number", placeholder: "e.g. 200" },
+    { name: "brand", label: "Brand" },
+  ]},
+  plumbing: { title: "Plumbing Details", fields: [
+    { name: "capacity", label: "Capacity", placeholder: "e.g. 50 gallon" },
+    { name: "brand", label: "Brand" },
+    { name: "modelNumber", label: "Model Number" },
+  ]},
+  lighting: { title: "Lighting Details", fields: [
+    { name: "brand", label: "Brand", placeholder: "e.g. Philips Hue, Lutron" },
+    { name: "monthlyPayment", label: "Monthly Payment", type: "number", step: "0.01", placeholder: "If subscription" },
+  ]},
+};
 
 interface Props {
   system?: HomeSystem;
@@ -59,31 +103,21 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
 
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const f = formData(new FormData(e.currentTarget));
     const data: Omit<HomeSystem, "id"> = {
-      name: fd.get("name") as string,
-      icon: "settings-2",
-      category,
-      scope,
-      installDate: (fd.get("installDate") as string) || "",
-      lastServiceDate: (fd.get("lastServiceDate") as string) || "",
-      nextServiceDate: (fd.get("nextServiceDate") as string) || "",
-      warrantyExpiration: (fd.get("warrantyExpiration") as string) || "",
-      estimatedLifeYears: Number(fd.get("estimatedLifeYears")) || 15,
-      estimatedReplaceCost: Number(fd.get("estimatedReplaceCost")) || 0,
-      condition: (fd.get("condition") as Condition) || "unknown",
-      notes: (fd.get("notes") as string) || "",
-      // Category-specific
-      filterSize: (fd.get("filterSize") as string) || undefined,
-      filterChangeIntervalMonths: Number(fd.get("filterChangeIntervalMonths")) || undefined,
-      provider: (fd.get("provider") as string) || undefined,
-      monthlyPayment: Number(fd.get("monthlyPayment")) || undefined,
-      accountNumber: (fd.get("accountNumber") as string) || undefined,
-      brand: (fd.get("brand") as string) || undefined,
-      modelNumber: (fd.get("modelNumber") as string) || undefined,
-      serialNumber: (fd.get("serialNumber") as string) || undefined,
-      amperage: Number(fd.get("amperage")) || undefined,
-      capacity: (fd.get("capacity") as string) || undefined,
+      name: f.str("name"), icon: "settings-2", category, scope,
+      installDate: f.str("installDate"), lastServiceDate: f.str("lastServiceDate"),
+      nextServiceDate: f.str("nextServiceDate"), warrantyExpiration: f.str("warrantyExpiration"),
+      estimatedLifeYears: f.num("estimatedLifeYears") || 15,
+      estimatedReplaceCost: f.num("estimatedReplaceCost"),
+      condition: (f.str("condition") as Condition) || "unknown",
+      notes: f.str("notes"),
+      filterSize: f.str("filterSize") || undefined,
+      filterChangeIntervalMonths: f.num("filterChangeIntervalMonths") || undefined,
+      provider: f.str("provider") || undefined, monthlyPayment: f.num("monthlyPayment") || undefined,
+      accountNumber: f.str("accountNumber") || undefined, brand: f.str("brand") || undefined,
+      modelNumber: f.str("modelNumber") || undefined, serialNumber: f.str("serialNumber") || undefined,
+      amperage: f.num("amperage") || undefined, capacity: f.str("capacity") || undefined,
     };
 
     if (isEditing) {
@@ -253,137 +287,24 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
         </Field>
 
         {/* ─── Category-specific fields ─── */}
-
-        {/* HVAC: filter info */}
-        {category === "hvac" && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">HVAC Details</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Filter Size">
-                <Input name="filterSize" defaultValue={system?.filterSize ?? ""} className={inputCls} placeholder="e.g. 16x25x1" />
-              </Field>
-              <Field label="Filter Change (Months)">
-                <Input name="filterChangeIntervalMonths" type="number" defaultValue={system?.filterChangeIntervalMonths ?? ""} className={inputCls} />
-              </Field>
-            </div>
-          </>
-        )}
-
-        {/* Network: provider, monthly payment, account */}
-        {category === "network" && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">Service Details</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Provider">
-                <Input name="provider" defaultValue={system?.provider ?? ""} className={inputCls} placeholder="e.g. Comcast, Verizon" />
-              </Field>
-              <Field label="Monthly Payment">
-                <Input name="monthlyPayment" type="number" step="0.01" defaultValue={system?.monthlyPayment ?? ""} className={inputCls} />
-              </Field>
-            </div>
-            <Field label="Account Number">
-              <Input name="accountNumber" defaultValue={system?.accountNumber ?? ""} className={inputCls} />
+        {category && categoryFields[category] && (() => {
+          const { title, fields } = categoryFields[category];
+          const val = (name: string) => String((system as unknown as Record<string, unknown>)?.[name] ?? "");
+          const renderField = (f: FieldConfig) => (
+            <Field key={f.name} label={f.label}>
+              <Input name={f.name} type={f.type || "text"} step={f.step} defaultValue={val(f.name)} className={inputCls} placeholder={f.placeholder} />
             </Field>
-          </>
-        )}
-
-        {/* Security: provider, monthly payment, account */}
-        {category === "security" && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">Security Service</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Provider">
-                <Input name="provider" defaultValue={system?.provider ?? ""} className={inputCls} placeholder="e.g. ADT, Ring" />
-              </Field>
-              <Field label="Monthly Payment">
-                <Input name="monthlyPayment" type="number" step="0.01" defaultValue={system?.monthlyPayment ?? ""} className={inputCls} />
-              </Field>
-            </div>
-            <Field label="Account Number">
-              <Input name="accountNumber" defaultValue={system?.accountNumber ?? ""} className={inputCls} />
-            </Field>
-          </>
-        )}
-
-        {/* Appliances: brand, model, serial */}
-        {category === "appliances" && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">Appliance Details</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Brand">
-                <Input name="brand" defaultValue={system?.brand ?? ""} className={inputCls} placeholder="e.g. Samsung, LG" />
-              </Field>
-              <Field label="Model Number">
-                <Input name="modelNumber" defaultValue={system?.modelNumber ?? ""} className={inputCls} />
-              </Field>
-            </div>
-            <Field label="Serial Number">
-              <Input name="serialNumber" defaultValue={system?.serialNumber ?? ""} className={inputCls} />
-            </Field>
-          </>
-        )}
-
-        {/* Electrical: amperage, brand */}
-        {category === "electrical" && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">Electrical Details</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Amperage">
-                <Input name="amperage" type="number" defaultValue={system?.amperage ?? ""} className={inputCls} placeholder="e.g. 200" />
-              </Field>
-              <Field label="Brand">
-                <Input name="brand" defaultValue={system?.brand ?? ""} className={inputCls} />
-              </Field>
-            </div>
-          </>
-        )}
-
-        {/* Plumbing: capacity, brand */}
-        {category === "plumbing" && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">Plumbing Details</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Capacity">
-                <Input name="capacity" defaultValue={system?.capacity ?? ""} className={inputCls} placeholder="e.g. 50 gallon" />
-              </Field>
-              <Field label="Brand">
-                <Input name="brand" defaultValue={system?.brand ?? ""} className={inputCls} />
-              </Field>
-            </div>
-            <Field label="Model Number">
-              <Input name="modelNumber" defaultValue={system?.modelNumber ?? ""} className={inputCls} />
-            </Field>
-          </>
-        )}
-
-        {/* Lighting: brand, monthly payment (if smart lighting service) */}
-        {category === "lighting" && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">Lighting Details</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Brand">
-                <Input name="brand" defaultValue={system?.brand ?? ""} className={inputCls} placeholder="e.g. Philips Hue, Lutron" />
-              </Field>
-              <Field label="Monthly Payment">
-                <Input name="monthlyPayment" type="number" step="0.01" defaultValue={system?.monthlyPayment ?? ""} className={inputCls} placeholder="If subscription" />
-              </Field>
-            </div>
-          </>
-        )}
+          );
+          return (
+            <>
+              <div className="border-t border-border pt-4">
+                <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-azure">{title}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">{fields.slice(0, 2).map(renderField)}</div>
+              {fields.slice(2).map(renderField)}
+            </>
+          );
+        })()}
 
         {/* Notes — always shown */}
         <Field label="Notes">
