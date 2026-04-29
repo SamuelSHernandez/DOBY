@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useDobyStore } from "@/store";
 import PageHeader from "@/components/layout/PageHeader";
 import { toast } from "sonner";
 import type { FeatureFlags, Theme } from "@/store/types";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 interface FeatureToggle {
   key: keyof FeatureFlags;
@@ -48,6 +50,18 @@ export default function AdminPage() {
   const theme = useDobyStore((s) => s.theme);
   const setTheme = useDobyStore((s) => s.setTheme);
   const resetStore = useDobyStore((s) => s.resetStore);
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+  }, []);
+
+  async function signOut() {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    toast.success("Signed out");
+  }
 
   function toggle(key: keyof FeatureFlags) {
     updateFlags({ [key]: !flags[key] });
@@ -76,6 +90,25 @@ export default function AdminPage() {
         title="Admin"
         subtitle={`${enabledCount} / ${features.length} features enabled`}
       />
+
+      {/* ── Account ── */}
+      {isSupabaseConfigured && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-primary">Account</h2>
+          <div className="flex items-center justify-between border border-border bg-surface px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-text-primary truncate">{email ?? "—"}</p>
+              <p className="text-[11px] text-text-tertiary">Synced to Supabase</p>
+            </div>
+            <button
+              onClick={signOut}
+              className="border border-border px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-text-secondary hover:border-oxblood hover:text-oxblood"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Theme ── */}
       <div className="mb-8">
