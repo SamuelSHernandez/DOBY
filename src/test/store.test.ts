@@ -144,13 +144,13 @@ describe("Zustand Store", () => {
 
   describe("contractors (CRUD factory)", () => {
     it("adds and updates a contractor", () => {
-      useDobyStore.getState().addContractor({ id: "c1", name: "Joe", type: "Plumber", phone: "", email: "", rating: 4, notes: "" });
+      useDobyStore.getState().addContractor({ id: "c1", name: "Joe", type: "Plumber", phone: "", email: "", rating: 4, lastUsedDate: "", notes: "" });
       useDobyStore.getState().updateContractor("c1", { rating: 5 });
       expect(useDobyStore.getState().contractors[0].rating).toBe(5);
     });
 
     it("deletes a contractor", () => {
-      useDobyStore.getState().addContractor({ id: "c1", name: "Joe", type: "Plumber", phone: "", email: "", rating: 4, notes: "" });
+      useDobyStore.getState().addContractor({ id: "c1", name: "Joe", type: "Plumber", phone: "", email: "", rating: 4, lastUsedDate: "", notes: "" });
       useDobyStore.getState().deleteContractor("c1");
       expect(useDobyStore.getState().contractors).toHaveLength(0);
     });
@@ -169,8 +169,8 @@ describe("Zustand Store", () => {
     it("adds and updates a project", () => {
       useDobyStore.getState().addProject({
         id: "p1", name: "Paint bedroom", status: "planned",
-        startDate: "", endDate: "", budget: 500, actualCost: 0,
-        contractorId: "", permit: false, notes: "",
+        startDate: "", endDate: "", budget: 500, actualSpend: 0,
+        contractorId: "", permitNumber: "", notes: "",
       });
       useDobyStore.getState().updateProject("p1", { status: "in-progress" });
       expect(useDobyStore.getState().projects[0].status).toBe("in-progress");
