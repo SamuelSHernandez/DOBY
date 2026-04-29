@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { generateId } from "@/lib/constants";
 import { fd as formData } from "@/lib/form";
 import { formatCurrency } from "@/lib/formatters";
+import { vendorFromUrl } from "@/lib/vendors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,60 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { Plus, Pencil, Trash2, ShoppingCart, ExternalLink } from "lucide-react";
-
-// Instant vendor detection from URL — no network call needed
-const VENDOR_HOSTS: Record<string, string> = {
-  "amazon.com": "Amazon",
-  "ikea.com": "IKEA",
-  "target.com": "Target",
-  "walmart.com": "Walmart",
-  "homedepot.com": "Home Depot",
-  "lowes.com": "Lowe's",
-  "wayfair.com": "Wayfair",
-  "costco.com": "Costco",
-  "etsy.com": "Etsy",
-  "cb2.com": "CB2",
-  "crateandbarrel.com": "Crate & Barrel",
-  "potterybarn.com": "Pottery Barn",
-  "westelm.com": "West Elm",
-  "overstock.com": "Overstock",
-  "bedbathandbeyond.com": "Bed Bath & Beyond",
-  "acehardware.com": "Ace Hardware",
-  "menards.com": "Menards",
-  "rejuvenation.com": "Rejuvenation",
-  "restorationhardware.com": "RH",
-  "rh.com": "RH",
-  "pier1.com": "Pier 1",
-  "worldmarket.com": "World Market",
-  "zgallerie.com": "Z Gallerie",
-  "anthropologie.com": "Anthropologie",
-  "urbanoutfitters.com": "Urban Outfitters",
-  "allmodern.com": "AllModern",
-  "jossandmain.com": "Joss & Main",
-  "birchlane.com": "Birch Lane",
-  "hayneedle.com": "Hayneedle",
-  "build.com": "Build.com",
-  "fergusons.com": "Ferguson",
-  "lumens.com": "Lumens",
-  "ylighting.com": "YLighting",
-  "ebay.com": "eBay",
-  "bestbuy.com": "Best Buy",
-  "samsclub.com": "Sam's Club",
-};
-
-function vendorFromUrl(url: string): string | null {
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, "").replace(/^smile\./, "");
-    // Direct match
-    if (VENDOR_HOSTS[hostname]) return VENDOR_HOSTS[hostname];
-    // Try without subdomain (e.g., m.ikea.com)
-    const parts = hostname.split(".");
-    const domain = parts.slice(-2).join(".");
-    return VENDOR_HOSTS[domain] || null;
-  } catch {
-    return null;
-  }
-}
 
 const priorityColor: Record<Priority, string> = {
   high: "text-oxblood",
