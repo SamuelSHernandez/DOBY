@@ -34,11 +34,9 @@ Doby is a local-first home management SPA built with Next.js 16 (App Router, sta
 - `/upkeep` — Sub-tabs: Seasonal/Projects
 - `/utilities` — Utility bill tracking with bar charts
 - `/reference` — Sub-tabs: Emergency/Contractors/Documents
-- `/floorplan` — Whole-home floor plan assembly
-- `/floorplan/edit?roomId=xxx` — Per-room floor plan editor
 - `/admin` — Feature flags and theme toggle
 
-Routes using query params (`/room`, `/floorplan/edit`) wrap `useSearchParams()` in Suspense boundaries (required for static export).
+Routes using query params (e.g. `/room`) wrap `useSearchParams()` in Suspense boundaries (required for static export).
 
 ### Navigation
 - Desktop (≥md): Fixed left sidebar 200px (`Sidebar.tsx`)
@@ -49,7 +47,7 @@ Routes using query params (`/room`, `/floorplan/edit`) wrap `useSearchParams()` 
 - `src/lib/mortgage.ts` — Amortization calculation, equity, home value
 - `src/lib/dates.ts` — Date formatting helpers (date-fns)
 - `src/lib/formatters.ts` — Currency, percent, dimensions formatting
-- `src/lib/constants.ts` — Nav items, blueprint scaling, ID generation via `crypto.randomUUID()`
+- `src/lib/constants.ts` — Nav items, ID generation via `crypto.randomUUID()`
 
 ## Design System
 

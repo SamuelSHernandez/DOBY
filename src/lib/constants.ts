@@ -7,8 +7,6 @@ export const NAV_ITEMS = [
   { label: "Reference", href: "/reference", icon: "book-open" },
 ] as const;
 
-export const PIXELS_PER_INCH = 5;
-
 export function generateId(): string {
   return crypto.randomUUID();
 }
