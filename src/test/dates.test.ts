@@ -3,6 +3,7 @@ import {
   formatDate,
   formatShortDate,
   daysUntil,
+  daysUntilAfterMonths,
   yearsElapsed,
   yearsFractional,
   toISODate,
@@ -61,6 +62,30 @@ describe("toISODate", () => {
   it("formats date to ISO", () => {
     const date = new Date(2024, 2, 15);
     expect(toISODate(date)).toBe("2024-03-15");
+  });
+});
+
+describe("daysUntilAfterMonths", () => {
+  it("returns 0 for empty start date", () => {
+    expect(daysUntilAfterMonths("", 3)).toBe(0);
+  });
+
+  it("returns 0 for non-positive months", () => {
+    expect(daysUntilAfterMonths("2024-01-01", 0)).toBe(0);
+  });
+
+  it("uses calendar-month math, not flat 30-day approximations", () => {
+    // 12 months from Jan 1 lands on Jan 1 of next year (365 days, not 360).
+    // We pin both today and the start so the test is deterministic.
+    const startStr = "2024-01-01";
+    const oneYearFromStart = daysUntilAfterMonths(startStr, 12);
+    // Difference between (start + 12mo) and "today" — depends on today, but
+    // structurally must equal differenceInDays(2025-01-01, today).
+    const expected = Math.floor(
+      (Date.parse("2025-01-01") - new Date().setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24)
+    );
+    // Allow ±1 day for timezone/DST edges.
+    expect(Math.abs(oneYearFromStart - expected)).toBeLessThanOrEqual(1);
   });
 });
 

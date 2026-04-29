@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, differenceInDays, differenceInYears, parseISO } from "date-fns";
+import { format, formatDistanceToNow, differenceInDays, differenceInYears, parseISO, addMonths } from "date-fns";
 
 export function formatDate(dateStr: string): string {
   if (!dateStr) return "—";
@@ -18,6 +18,15 @@ export function formatRelative(dateStr: string): string {
 export function daysUntil(dateStr: string): number {
   if (!dateStr) return 0;
   return differenceInDays(parseISO(dateStr), new Date());
+}
+
+/**
+ * Days until `months` after `startDate`. Honors actual calendar months
+ * (Jan→Feb is 28-31 days, not a flat 30) so reminders don't drift.
+ */
+export function daysUntilAfterMonths(startDate: string, months: number): number {
+  if (!startDate || months <= 0) return 0;
+  return differenceInDays(addMonths(parseISO(startDate), months), new Date());
 }
 
 export function yearsElapsed(dateStr: string): number {

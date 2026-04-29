@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useDobyStore } from "@/store";
 import { useShallow } from "zustand/react/shallow";
-import { daysUntil, toISODate } from "@/lib/dates";
+import { daysUntil, daysUntilAfterMonths, toISODate } from "@/lib/dates";
 import { formatDueText } from "@/lib/form";
 import { generateId } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -28,14 +28,16 @@ import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface DisplayTask {
-  id: string;
+  /** React list key — globally unique across sources */
+  key: string;
+  /** Identity of the underlying domain object (system id, project id, custom-task id) */
+  realId: string;
   name: string;
   location: string;
   daysAway: number;
   dueText: string;
   priority: "high" | "medium" | "low";
   source: "system" | "filter" | "project" | "custom";
-  systemId?: string;
   completed: boolean;
 }
 
@@ -60,34 +62,32 @@ export default function MaintenanceTaskList() {
       const room = rooms.find((r) => r.systemIds.includes(sys.id));
 
       tasks.push({
-        id: `sys-${sys.id}`,
+        key: `sys-${sys.id}`,
+        realId: sys.id,
         name: `${sys.name} service`,
         location: room?.name ?? "Whole home",
         daysAway: days,
         dueText: formatDueText(days),
         priority: days < 0 ? "high" : days < 30 ? "medium" : "low",
         source: "system",
-        systemId: sys.id,
         completed: false,
       });
     }
 
     // Filter changes
     if (sys.filterSize && sys.filterChangeIntervalMonths && sys.lastServiceDate) {
-      const daysSince = -daysUntil(sys.lastServiceDate);
-      const intervalDays = sys.filterChangeIntervalMonths * 30;
-      const daysRemaining = intervalDays - daysSince;
+      const daysRemaining = daysUntilAfterMonths(sys.lastServiceDate, sys.filterChangeIntervalMonths);
       if (daysRemaining < 60) {
         const room = rooms.find((r) => r.systemIds.includes(sys.id));
         tasks.push({
-          id: `filter-${sys.id}`,
+          key: `filter-${sys.id}`,
+          realId: sys.id,
           name: `Replace ${sys.name} filter`,
           location: room?.name ?? "Whole home",
           daysAway: daysRemaining,
           dueText: formatDueText(daysRemaining),
           priority: daysRemaining < 0 ? "high" : daysRemaining < 14 ? "medium" : "low",
           source: "filter",
-          systemId: sys.id,
           completed: false,
         });
       }
@@ -100,7 +100,8 @@ export default function MaintenanceTaskList() {
       if (proj.endDate) {
         const days = daysUntil(proj.endDate);
         tasks.push({
-          id: `proj-${proj.id}`,
+          key: `proj-${proj.id}`,
+          realId: proj.id,
           name: proj.name,
           location: "Project",
           daysAway: days,
@@ -118,7 +119,8 @@ export default function MaintenanceTaskList() {
     if (task.completed) continue;
     const days = task.dueDate ? daysUntil(task.dueDate) : 999;
     tasks.push({
-      id: `custom-${task.id}`,
+      key: `custom-${task.id}`,
+      realId: task.id,
       name: task.name,
       location: task.location,
       daysAway: days,
@@ -137,21 +139,17 @@ export default function MaintenanceTaskList() {
 
   function handleComplete(task: DisplayTask) {
     if (task.source === "system" || task.source === "filter") {
-      if (task.systemId) {
-        completeSystemService(task.systemId);
-        toast.success(`${task.name} marked complete — next service date updated`);
-      }
+      completeSystemService(task.realId);
+      toast.success(`${task.name} marked complete — next service date updated`);
     } else if (task.source === "custom") {
-      const realId = task.id.replace("custom-", "");
-      completeCustomTask(realId);
+      completeCustomTask(task.realId);
       toast.success(`${task.name} completed`);
     }
   }
 
   function handleDelete(task: DisplayTask) {
     if (task.source === "custom") {
-      const realId = task.id.replace("custom-", "");
-      deleteCustomTask(realId);
+      deleteCustomTask(task.realId);
       toast.success("Task removed");
     }
   }
@@ -186,7 +184,7 @@ export default function MaintenanceTaskList() {
         <div className="space-y-2">
           {sorted.map((task) => (
             <div
-              key={task.id}
+              key={task.key}
               className={cn("flex items-center gap-3 border border-border border-l-[3px] bg-surface px-4 py-4", borderColors[task.priority])}
             >
               {/* Checkbox */}
