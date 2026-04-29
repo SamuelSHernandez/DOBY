@@ -19,7 +19,7 @@ import type { HomeSystem, Condition, SystemCategory } from "@/store/types";
 import { Plus } from "lucide-react";
 
 interface FieldConfig {
-  name: string;
+  name: keyof HomeSystem;
   label: string;
   type?: string;
   step?: string;
@@ -82,6 +82,8 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<SystemCategory>(system?.category ?? "hvac");
   const [scope, setScope] = useState<"whole-home" | "room-specific">(system?.scope ?? "whole-home");
+  const [name, setName] = useState(system?.name ?? "");
+  const [lifeYears, setLifeYears] = useState<number | "">(system?.estimatedLifeYears ?? 15);
   const addSystem = useDobyStore((s) => s.addSystem);
   const updateSystem = useDobyStore((s) => s.updateSystem);
   const deleteSystem = useDobyStore((s) => s.deleteSystem);
@@ -156,19 +158,13 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
     if (system) { deleteSystem(system.id); handleClose(); }
   }
 
-  function applyPreset(name: string) {
-    const preset = systemPresets.find((p) => p.name === name);
-    if (preset) {
-      setCategory(preset.category);
-      setScope(preset.scope);
-      const form = document.querySelector<HTMLFormElement>("#system-form");
-      if (form) {
-        const nameInput = form.querySelector<HTMLInputElement>('[name="name"]');
-        const lifeInput = form.querySelector<HTMLInputElement>('[name="estimatedLifeYears"]');
-        if (nameInput) nameInput.value = preset.name;
-        if (lifeInput) lifeInput.value = String(preset.estimatedLifeYears);
-      }
-    }
+  function applyPreset(presetName: string) {
+    const preset = systemPresets.find((p) => p.name === presetName);
+    if (!preset) return;
+    setCategory(preset.category);
+    setScope(preset.scope);
+    setName(preset.name);
+    setLifeYears(preset.estimatedLifeYears);
   }
 
   const content = (
@@ -197,7 +193,7 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
         {/* Name + Category */}
         <div className="grid grid-cols-2 gap-4">
           <Field label="Name">
-            <Input name="name" defaultValue={system?.name ?? ""} required className={inputCls} />
+            <Input name="name" value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} />
           </Field>
           <Field label="Category">
             <Select value={category} onValueChange={(v) => setCategory(v as SystemCategory)}>
@@ -268,7 +264,13 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
         {/* Common specs */}
         <div className="grid grid-cols-2 gap-4">
           <Field label="Lifespan (Years)">
-            <Input name="estimatedLifeYears" type="number" defaultValue={system?.estimatedLifeYears ?? 15} className={inputCls} />
+            <Input
+              name="estimatedLifeYears"
+              type="number"
+              value={lifeYears}
+              onChange={(e) => setLifeYears(e.target.value === "" ? "" : Number(e.target.value))}
+              className={inputCls}
+            />
           </Field>
           <Field label="Replace Cost">
             <Input name="estimatedReplaceCost" type="number" defaultValue={system?.estimatedReplaceCost ?? ""} className={inputCls} />
@@ -289,7 +291,7 @@ export default function SystemFormDialog({ system, trigger, onClose }: Props) {
         {/* ─── Category-specific fields ─── */}
         {category && categoryFields[category] && (() => {
           const { title, fields } = categoryFields[category];
-          const val = (name: string) => String((system as unknown as Record<string, unknown>)?.[name] ?? "");
+          const val = (name: keyof HomeSystem) => (system ? String(system[name] ?? "") : "");
           const renderField = (f: FieldConfig) => (
             <Field key={f.name} label={f.label}>
               <Input name={f.name} type={f.type || "text"} step={f.step} defaultValue={val(f.name)} className={inputCls} placeholder={f.placeholder} />
