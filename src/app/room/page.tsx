@@ -17,7 +17,6 @@ import InventoryList from "@/components/home/InventoryList";
 import WishlistList from "@/components/home/WishlistList";
 import RoomFormDialog from "@/components/home/RoomFormDialog";
 import { useFeature } from "@/lib/useFeature";
-import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 import BackButton from "@/components/shared/BackButton";
 import { toast } from "sonner";
@@ -41,18 +40,8 @@ function RoomDetailContent() {
   const [maintInput, setMaintInput] = useState("");
   const [photoInput, setPhotoInput] = useState("");
 
-  if (!room) {
-    return (
-      <div>
-        <p className="text-text-tertiary">Room not found.</p>
-        <Button variant="outline" size="sm" className="mt-4 border-border text-text-secondary" onClick={() => router.push("/home")}>
-          Back to Home
-        </Button>
-      </div>
-    );
-  }
-
   const derived = useMemo(() => {
+    if (!room) return null;
     const linkedSystems = allSystems.filter((s) => room.systemIds.includes(s.id));
     const wholeHomeSystems = allSystems.filter((s) => s.scope === "whole-home");
     const roomSpecificLinked = linkedSystems.filter((s) => s.scope !== "whole-home");
@@ -74,7 +63,19 @@ function RoomDetailContent() {
       hasCostData: inventorySpent > 0 || wishlistTotal > 0,
     };
   }, [room, allSystems, allRooms]);
-  const { linkedSystems, wholeHomeSystems, roomSpecificLinked, sqft, sqftDisplay, hasDimensions, healthVariant, healthLabel, costSharePct, inventorySpent, wishlistTotal, hasCostData } = derived;
+
+  if (!room || !derived) {
+    return (
+      <div>
+        <p className="text-text-tertiary">Room not found.</p>
+        <Button variant="outline" size="sm" className="mt-4 border-border text-text-secondary" onClick={() => router.push("/home")}>
+          Back to Home
+        </Button>
+      </div>
+    );
+  }
+
+  const { wholeHomeSystems, roomSpecificLinked, sqftDisplay, hasDimensions, healthVariant, healthLabel, costSharePct, inventorySpent, wishlistTotal, hasCostData } = derived;
 
   return (
     <div>
