@@ -15,14 +15,21 @@ Build produces a fully static `out/` directory (~3.7MB). No Node.js runtime need
 
 ## Architecture
 
-Doby is a local-first home management SPA built with Next.js 16 (App Router, static export), React 19, TypeScript, and Tailwind CSS 4. All data persists in localStorage via Zustand — no backend, no auth, no API routes, no server-side rendering.
+Doby is a home management SPA built with Next.js 16 (App Router, static export), React 19, TypeScript, and Tailwind CSS 4. State lives in localStorage for offline use and syncs to a single Supabase JSONB row per user for cross-device persistence. No API routes, no server-side rendering — the Supabase JS client talks directly from the browser.
 
 ### State Management
-- **Single Zustand store** at `src/store/index.ts` with `persist` middleware (localStorage key: `doby-store`)
+- **Single Zustand store** at `src/store/index.ts` with `persist` middleware (localStorage key: `doby-store`, version 1, custom merge fills missing slices with defaults)
 - Types in `src/store/types.ts`, defaults/presets in `src/store/defaults.ts`
 - Store has CRUD actions for: rooms, inventory, wishlist, systems, expenses, utilities, projects, contractors, documents
 - Theme (`dark`/`light`) persisted in store, applied via `.light` class on `<html>`
 - All components access store via `useDobyStore` hook
+
+### Sync (Supabase)
+- `src/lib/supabase.ts` — client (gracefully degrades to local-only when env vars are missing)
+- `src/lib/sync.ts` — `pullOrSeed(userId)` on bootstrap, `subscribePush(userId)` debounces store changes (1s) into a single `app_state` upsert
+- Auth: magic-link email via `supabase.auth.signInWithOtp`; `/auth` page handles entry, `AppShell` gates routes and bootstraps sync
+- Schema: one table `app_state(user_id PK, data jsonb, updated_at)` with RLS pinning rows to `auth.uid()`
+- Conflict model: last-write-wins (cloud overwrites local on load; local edits push up debounced)
 
 ### Routing
 - `/` — Client-side redirect to `/home`
@@ -34,7 +41,8 @@ Doby is a local-first home management SPA built with Next.js 16 (App Router, sta
 - `/upkeep` — Sub-tabs: Seasonal/Projects
 - `/utilities` — Utility bill tracking with bar charts
 - `/reference` — Sub-tabs: Emergency/Contractors/Documents
-- `/admin` — Feature flags and theme toggle
+- `/auth` — Magic-link sign-in (rendered standalone, no nav, no auth gate)
+- `/admin` — Feature flags, theme toggle, account/sign-out
 
 Routes using query params (e.g. `/room`) wrap `useSearchParams()` in Suspense boundaries (required for static export).
 
