@@ -27,28 +27,50 @@ import { defaultState } from "./defaults";
 
 // ─── Helpers ───
 
-function updateInArray<T extends { id: string }>(arr: T[], id: string, data: Partial<T>): T[] {
+type IdItem = { id: string };
+type ArrayKeysWithId<T> = { [K in keyof T]: T[K] extends IdItem[] ? K : never }[keyof T];
+type ElementOf<A> = A extends Array<infer U> ? U : never;
+
+type RoomSubArrays = {
+  [K in keyof Room as NonNullable<Room[K]> extends IdItem[] ? K : never]-?: NonNullable<Room[K]>;
+};
+
+function updateInArray<T extends IdItem>(arr: T[], id: string, data: Partial<T>): T[] {
   return arr.map((item) => (item.id === id ? { ...item, ...data } : item));
 }
 
 type SetFn = (fn: (s: DobyState) => Partial<DobyState>) => void;
 
-function crudActions<T extends { id: string }>(key: keyof DobyState, set: SetFn) {
-  const get = (s: DobyState) => s[key] as unknown as T[];
+function crudActions<K extends ArrayKeysWithId<DobyState>>(key: K, set: SetFn) {
+  type Item = ElementOf<DobyState[K]>;
+  const get = (s: DobyState): Item[] => s[key] as Item[];
   return {
-    add: (item: T) => set((s) => ({ [key]: [...get(s), item] })),
-    update: (id: string, data: Partial<T>) => set((s) => ({ [key]: updateInArray(get(s), id, data) })),
-    delete: (id: string) => set((s) => ({ [key]: get(s).filter((x) => x.id !== id) })),
+    add: (item: Item) => set((s) => ({ [key]: [...get(s), item] }) as Partial<DobyState>),
+    update: (id: string, data: Partial<Item>) =>
+      set((s) => ({ [key]: updateInArray(get(s), id, data) }) as Partial<DobyState>),
+    delete: (id: string) =>
+      set((s) => ({ [key]: get(s).filter((x) => x.id !== id) }) as Partial<DobyState>),
   };
 }
 
-function roomSubActions<T extends { id: string }>(field: keyof Room, set: SetFn) {
-  const get = (r: Room) => (r[field] as unknown as T[]) || [];
+function roomSubActions<K extends keyof RoomSubArrays>(field: K, set: SetFn) {
+  type Item = ElementOf<RoomSubArrays[K]>;
+  const get = (r: Room): Item[] => ((r as Room & Record<K, Item[] | undefined>)[field] ?? []);
   return {
-    add: (roomId: string, item: T) =>
-      set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, [field]: [...get(r), item] } : r) })),
+    add: (roomId: string, item: Item) =>
+      set((s) => ({
+        rooms: s.rooms.map((r) =>
+          r.id === roomId ? ({ ...r, [field]: [...get(r), item] } as Room) : r,
+        ),
+      })),
     delete: (roomId: string, itemId: string) =>
-      set((s) => ({ rooms: s.rooms.map((r) => r.id === roomId ? { ...r, [field]: get(r).filter((x) => x.id !== itemId) } : r) })),
+      set((s) => ({
+        rooms: s.rooms.map((r) =>
+          r.id === roomId
+            ? ({ ...r, [field]: get(r).filter((x) => x.id !== itemId) } as Room)
+            : r,
+        ),
+      })),
   };
 }
 
@@ -114,16 +136,16 @@ export type DobyStore = DobyState & DobyActions;
 export const useDobyStore = create<DobyStore>()(
   persist(
     (set, get) => {
-      const expenses = crudActions<Expense>("expenses", set);
-      const utilities = crudActions<UtilityBill>("utilities", set);
-      const projects = crudActions<Project>("projects", set);
-      const contractors = crudActions<Contractor>("contractors", set);
-      const documents = crudActions<DocumentRef>("documents", set);
-      const customTasks = crudActions<CustomTask>("customTasks", set);
-      const inventory = roomSubActions<InventoryItem>("inventory", set);
-      const wishlist = roomSubActions<WishlistItem>("wishlist", set);
-      const photos = roomSubActions<RoomPhoto>("photos", set);
-      const maintenance = roomSubActions<MaintenanceEntry>("maintenanceLog", set);
+      const expenses = crudActions("expenses", set);
+      const utilities = crudActions("utilities", set);
+      const projects = crudActions("projects", set);
+      const contractors = crudActions("contractors", set);
+      const documents = crudActions("documents", set);
+      const customTasks = crudActions("customTasks", set);
+      const inventory = roomSubActions("inventory", set);
+      const wishlist = roomSubActions("wishlist", set);
+      const photos = roomSubActions("photos", set);
+      const maintenance = roomSubActions("maintenanceLog", set);
 
       return {
         ...defaultState,
