@@ -2,16 +2,35 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  Tooltip, ResponsiveContainer, ReferenceLine,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { useDobyStore } from "@/store";
 import { calculateMonthlyPayment, generateAmortizationSchedule } from "@/lib/mortgage";
 import BackButton from "@/components/shared/BackButton";
 
+const MortgageCharts = dynamic(() => import("./MortgageCharts"), {
+  loading: () => (
+    <div className="mb-6 border border-border bg-surface p-6 text-[11px] text-text-tertiary">
+      Loading charts…
+    </div>
+  ),
+});
+
 const fmt = (v: number) => "$" + Math.round(v).toLocaleString();
-const fmtK = (v: number) => "$" + (v / 1000).toFixed(0) + "k";
+
+const FALLBACK_LOAN_AMOUNT = 310000;
+const FALLBACK_RATE = 6.5;
+const DEFAULT_EXTRA_PAYMENT = 300;
+const LOAN_TERM_YEARS = 30;
+
+const LOAN_MIN = 100000;
+const LOAN_MAX = 650000;
+const LOAN_STEP = 5000;
+const RATE_MIN = 3;
+const RATE_MAX = 9;
+const RATE_STEP = 0.125;
+const EXTRA_MIN = 0;
+const EXTRA_MAX = 2000;
+const EXTRA_STEP = 25;
 
 function amortize(principal: number, annualRate: number, years: number, extraMonthly = 0) {
   const schedule = generateAmortizationSchedule(principal, annualRate, years, extraMonthly);
@@ -92,34 +111,16 @@ function Stat({ label, value, sub, highlight }: {
   );
 }
 
-function ChartTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string; payload?: { month: number } }> }) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload as { month: number } | undefined;
-  if (!d) return null;
-  const yrs = Math.floor(d.month / 12);
-  const mos = d.month % 12;
-  return (
-    <div className="border border-border bg-panel p-2.5 text-[11px]">
-      <div className="mb-1 font-bold text-text-primary">Year {yrs}, Month {mos}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color }} className="mt-0.5">
-          {p.name}: {fmt(p.value)}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function MortgagePage() {
   const router = useRouter();
   const mortgage = useDobyStore((s) => s.mortgage);
 
-  const [loanAmount, setLoanAmount] = useState(mortgage.loanAmount || 310000);
-  const [rate, setRate] = useState(mortgage.interestRate || 6.5);
-  const [extraPayment, setExtraPayment] = useState(300);
+  const [loanAmount, setLoanAmount] = useState(mortgage.loanAmount || FALLBACK_LOAN_AMOUNT);
+  const [rate, setRate] = useState(mortgage.interestRate || FALLBACK_RATE);
+  const [extraPayment, setExtraPayment] = useState(DEFAULT_EXTRA_PAYMENT);
 
-  const base = useMemo(() => amortize(loanAmount, rate, 30, 0), [loanAmount, rate]);
-  const extra = useMemo(() => amortize(loanAmount, rate, 30, extraPayment), [loanAmount, rate, extraPayment]);
+  const base = useMemo(() => amortize(loanAmount, rate, LOAN_TERM_YEARS, 0), [loanAmount, rate]);
+  const extra = useMemo(() => amortize(loanAmount, rate, LOAN_TERM_YEARS, extraPayment), [loanAmount, rate, extraPayment]);
 
   const interestSaved = base.totalInterest - extra.totalInterest;
   const monthsSaved = base.months - extra.months;
@@ -200,9 +201,9 @@ export default function MortgagePage() {
 
       {/* Controls */}
       <div className="mb-6 border border-border bg-surface p-6">
-        <Slider label="Loan Amount" value={loanAmount} onChange={setLoanAmount} min={100000} max={650000} step={5000} format={fmt} />
-        <Slider label="Interest Rate" value={rate} onChange={setRate} min={3} max={9} step={0.125} format={(v) => v.toFixed(3) + "%"} />
-        <Slider label="Extra Monthly Payment" value={extraPayment} onChange={setExtraPayment} min={0} max={2000} step={25} format={fmt} />
+        <Slider label="Loan Amount" value={loanAmount} onChange={setLoanAmount} min={LOAN_MIN} max={LOAN_MAX} step={LOAN_STEP} format={fmt} />
+        <Slider label="Interest Rate" value={rate} onChange={setRate} min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} format={(v) => v.toFixed(3) + "%"} />
+        <Slider label="Extra Monthly Payment" value={extraPayment} onChange={setExtraPayment} min={EXTRA_MIN} max={EXTRA_MAX} step={EXTRA_STEP} format={fmt} />
         <div className="mt-3 border border-azure/20 bg-azure-dim px-3 py-2 text-[11px] text-azure">
           Base bi-weekly &asymp; {fmt(base.basePayment / 2)} &rarr; with extra: {fmt(base.basePayment / 2 + extraPayment / 2)} per paycheck
         </div>
@@ -224,104 +225,16 @@ export default function MortgagePage() {
         <Stat label="Total Interest (Accelerated)" value={fmt(extra.totalInterest)} sub={`${fmt(extra.totalPaid)} total paid`} />
       </div>
 
-      {/* Payment Breakdown */}
-      <div className="mb-6 border border-border bg-surface p-6">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-text-tertiary">Where Each Payment Goes</span>
-          <span className="border border-azure/20 bg-azure-dim px-2 py-0.5 text-[10px] text-azure">with extra payments</span>
-        </div>
-        <p className="mb-4 text-[11px] text-text-tertiary leading-relaxed">
-          First payment: <span className="font-semibold text-oxblood">{firstPctInterest}% interest</span> ({fmt(firstPayment.interest)}) vs{" "}
-          <span className="font-semibold text-azure">{100 - firstPctInterest}% principal</span> ({fmt(firstPayment.principal)})
-          {crossoverYear && <span> &middot; Flips at <strong className="text-text-primary">year {crossoverYear}</strong></span>}
-        </p>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={breakdownData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} stackOffset="expand" barCategoryGap="15%">
-            <XAxis dataKey="year" tickFormatter={(v) => `${v}y`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" />
-            <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" width={40} />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
-                const d = payload[0]?.payload;
-                if (!d) return null;
-                return (
-                  <div className="border border-border bg-panel p-2.5 text-[11px]">
-                    <div className="mb-1 font-bold text-text-primary">Year {label}</div>
-                    <div className="text-oxblood">Interest: {fmt(d.interest)} ({d.pctInterest}%)</div>
-                    <div className="text-azure">Principal: {fmt(d.principal)} ({d.pctPrincipal}%)</div>
-                    <div className="mt-1 border-t border-border pt-1 text-text-tertiary">Payment: {fmt(d.total)}</div>
-                  </div>
-                );
-              }}
-            />
-            <Bar dataKey="interest" stackId="pmt" name="Interest" fill="#95190C" fillOpacity={0.7} />
-            <Bar dataKey="principal" stackId="pmt" name="Principal" fill="#3083DC" fillOpacity={0.85} />
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="mt-3 flex items-center justify-center gap-5 text-[11px] text-text-tertiary">
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-3 bg-oxblood/70" /> Interest</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-3 bg-azure/85" /> Principal</span>
-          {crossoverYear && <span>&uarr; Crossover: year {crossoverYear}</span>}
-        </div>
-      </div>
-
-      {/* Balance Chart */}
-      <div className="mb-6 border border-border bg-surface p-6">
-        <p className="mb-4 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">Remaining Balance Over Time</p>
-        <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <defs>
-              <linearGradient id="stdGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#95190C" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#95190C" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="accGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3083DC" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#3083DC" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" />
-            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" width={50} />
-            <Tooltip content={<ChartTooltip />} />
-            <Area type="monotone" dataKey="standard" name="Standard" stroke="#95190C" strokeWidth={2} fill="url(#stdGrad)" dot={false} />
-            <Area type="monotone" dataKey="accelerated" name="Accelerated" stroke="#3083DC" strokeWidth={2} fill="url(#accGrad)" dot={false} />
-            {extra.months < base.months && (
-              <ReferenceLine x={chartData.find(d => d.accelerated === 0)?.year} stroke="#3083DC" strokeDasharray="4 4" strokeWidth={1} />
-            )}
-          </AreaChart>
-        </ResponsiveContainer>
-        <div className="mt-3 flex items-center justify-center gap-5 text-[11px] text-text-tertiary">
-          <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-3 bg-oxblood" /> Standard (30yr)</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-3 bg-azure" /> With Extra Payments</span>
-        </div>
-      </div>
-
-      {/* Cumulative Interest Chart */}
-      <div className="mb-6 border border-border bg-surface p-6">
-        <p className="mb-4 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">Cumulative Interest Paid</p>
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={interestData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <defs>
-              <linearGradient id="intStd" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#95190C" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#95190C" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="intAcc" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3083DC" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#3083DC" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="year" tickFormatter={(v) => `${Math.round(v)}y`} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" />
-            <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: "var(--d-chart-tick)" }} stroke="var(--d-chart-grid)" width={50} />
-            <Tooltip content={<ChartTooltip />} />
-            <Area type="monotone" dataKey="standard" name="Standard Interest" stroke="#95190C" strokeWidth={2} fill="url(#intStd)" dot={false} />
-            <Area type="monotone" dataKey="accelerated" name="Accelerated Interest" stroke="#3083DC" strokeWidth={2} fill="url(#intAcc)" dot={false} />
-          </AreaChart>
-        </ResponsiveContainer>
-        <p className="mt-3 text-center text-[11px] text-text-tertiary">
-          The gap between curves = <span className="font-semibold text-azure">{fmt(interestSaved)}</span> in interest you keep
-        </p>
-      </div>
+      <MortgageCharts
+        breakdownData={breakdownData}
+        chartData={chartData}
+        interestData={interestData}
+        crossoverYear={crossoverYear}
+        firstPctInterest={firstPctInterest}
+        firstPayment={firstPayment}
+        interestSaved={interestSaved}
+        extraEndsEarly={extra.months < base.months}
+      />
 
       {/* Equity Milestones */}
       <div className="mb-6 border border-border bg-surface p-6">
@@ -334,7 +247,7 @@ export default function MortgagePage() {
           return (
             <div key={pct} className={`flex items-center py-3 ${pct < 100 ? "border-b border-border" : ""}`}>
               {/* Donut */}
-              <div className="mr-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#3083DC ${pct * 3.6}deg, var(--d-border) 0deg)` }}>
+              <div className="mr-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(var(--color-azure) ${pct * 3.6}deg, var(--d-border) 0deg)` }}>
                 <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-surface text-[10px] font-semibold text-text-primary">
                   {pct}%
                 </div>
