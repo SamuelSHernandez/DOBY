@@ -247,6 +247,36 @@ export const useDobyStore = create<DobyStore>()(
         resetStore: () => set(defaultState),
       };
     },
-    { name: "doby-store" }
+    {
+      name: "doby-store",
+      // Bump when DobyState shape changes in a non-additive way (rename,
+      // remove, or change the meaning of a field) and add a case to migrate.
+      version: 1,
+      migrate: (persisted, _fromVersion) => persisted as DobyState,
+      // Shallow + one-level merge so newly-added top-level slices (or fields
+      // on object-shaped slices like `property`, `mortgage`) get defaults
+      // instead of being undefined for users with older persisted blobs.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<DobyState>;
+        const merged: DobyState = { ...defaultState };
+        const setSlice = <K extends keyof DobyState>(key: K, value: DobyState[K]) => {
+          merged[key] = value;
+        };
+        for (const key of Object.keys(defaultState) as (keyof DobyState)[]) {
+          const stored = p[key];
+          if (stored === undefined) continue;
+          const base = defaultState[key];
+          if (
+            base !== null && typeof base === "object" && !Array.isArray(base) &&
+            stored !== null && typeof stored === "object" && !Array.isArray(stored)
+          ) {
+            setSlice(key, { ...(base as object), ...(stored as object) } as DobyState[typeof key]);
+          } else {
+            setSlice(key, stored as DobyState[typeof key]);
+          }
+        }
+        return { ...current, ...merged };
+      },
+    },
   )
 );
